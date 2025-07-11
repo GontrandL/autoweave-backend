@@ -1,0 +1,52 @@
+{
+  "name": "@autoweave/backend",
+  "version": "1.0.0",
+  "description": "AutoWeave Backend - Scalable backend services architecture",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix"
+  },
+  "keywords": [
+    "autoweave",
+    "backend",
+    "microservices",
+    "event-driven",
+    "scalable"
+  ],
+  "author": "AutoWeave Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "ioredis": "^5.3.2",
+    "@qdrant/js-client-rest": "^1.7.0",
+    "neo4j-driver": "^5.15.0",
+    "prom-client": "^15.1.0",
+    "winston": "^3.11.0",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1",
+    "eventemitter3": "^5.0.1",
+    "p-queue": "^7.4.1",
+    "p-retry": "^5.1.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "eslint": "^8.56.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "@types/jest": "^29.5.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
