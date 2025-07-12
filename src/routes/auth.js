@@ -2,13 +2,101 @@ import { Router } from 'express';
 import { createHash } from 'crypto';
 
 /**
+ * @swagger
+ * components:
+ *   schemas:
+ *     LoginRequest:
+ *       type: object
+ *       required:
+ *         - username
+ *         - password
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Username or email
+ *           example: admin
+ *         password:
+ *           type: string
+ *           format: password
+ *           description: User password
+ *           example: admin123
+ *     LoginResponse:
+ *       type: object
+ *       properties:
+ *         token:
+ *           type: string
+ *           description: JWT authentication token
+ *         user:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *             username:
+ *               type: string
+ *             permissions:
+ *               type: array
+ *               items:
+ *                 type: string
+ *     ApiKey:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: API key name
+ *         permissions:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Permissions granted to this key
+ *         created:
+ *           type: string
+ *           format: date-time
+ *         lastUsed:
+ *           type: string
+ *           format: date-time
+ *         usageCount:
+ *           type: integer
+ */
+
+/**
  * Authentication routes
  */
 export default function createAuthRouter(authMiddleware, userService) {
   const router = Router();
 
   /**
-   * Login endpoint
+   * @swagger
+   * /api/auth/login:
+   *   post:
+   *     summary: User login
+   *     description: Authenticate user and receive JWT token
+   *     tags: [Authentication]
+   *     security: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/LoginRequest'
+   *     responses:
+   *       200:
+   *         description: Login successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LoginResponse'
+   *       400:
+   *         description: Invalid request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       401:
+   *         description: Invalid credentials
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
    */
   router.post('/login', async (req, res) => {
     try {

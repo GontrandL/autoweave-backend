@@ -176,6 +176,10 @@ import createAuthRouter from './routes/auth.js';
 app.use(authMiddleware.cors());
 app.use(authMiddleware.rateLimit());
 
+// Setup Swagger documentation
+import { setupSwagger } from './middleware/swagger.js';
+const swaggerInfo = setupSwagger(app, '/api-docs');
+
 // Public routes
 app.use('/api/auth', createAuthRouter(authMiddleware, userService));
 
@@ -276,6 +280,7 @@ if (METRICS_PORT !== PORT) {
 server.listen(PORT, async () => {
   logger.info(`AutoWeave Backend server listening on port ${PORT}`);
   logger.info(`WebSocket server ready on ws://localhost:${PORT}`);
+  logger.info(`API Documentation available at http://localhost:${PORT}${swaggerInfo.ui}`);
   
   // Initialize services
   try {
