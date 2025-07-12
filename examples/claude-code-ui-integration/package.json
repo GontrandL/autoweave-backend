@@ -1,0 +1,24 @@
+{
+  "name": "claude-code-ui-integration-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Example of integrating Claude Code UI with AutoWeave Backend",
+  "scripts": {
+    "integrate": "node integrate-claude-code-ui.js",
+    "deintegrate": "node deintegrate-claude-code-ui.js",
+    "workflow": "node complete-workflow.js",
+    "start": "npm run integrate"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "ws": "^8.16.0"
+  },
+  "keywords": [
+    "autoweave",
+    "claude-code-ui",
+    "integration",
+    "deintegration"
+  ],
+  "author": "AutoWeave Team",
+  "license": "MIT"
+}
