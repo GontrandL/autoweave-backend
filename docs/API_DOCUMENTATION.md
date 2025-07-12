@@ -314,6 +314,53 @@ curl -X POST http://localhost:3001/api/analytics/track \
   -d '{"event":"test_event","properties":{"value":123}}'
 ```
 
+## Monitoring
+
+### Metrics Endpoint
+
+The backend exposes Prometheus metrics at:
+
+```
+GET /metrics
+```
+
+This endpoint provides comprehensive metrics for:
+- HTTP requests (duration, count, status codes)
+- WebSocket connections and messages
+- Service health and uptime
+- Database operations and connection pools
+- Event bus activity
+- Pipeline executions
+- Integration requests
+- Authentication attempts
+- Business operations
+
+### Starting Monitoring Stack
+
+```bash
+# Start Prometheus, Grafana, and AlertManager
+npm run monitoring:start
+
+# Access Grafana dashboards
+open http://localhost:3003
+# Login: admin / admin123
+```
+
+### Monitoring Commands
+
+```bash
+# Start monitoring stack
+npm run monitoring:start
+
+# Stop monitoring stack
+npm run monitoring:stop
+
+# View monitoring logs
+npm run monitoring:logs
+```
+
+See [MONITORING.md](./MONITORING.md) for complete monitoring documentation.
+
 ## Testing the API
 
 ### Using Swagger UI
@@ -330,6 +377,13 @@ curl -X POST http://localhost:3001/api/analytics/track \
    - `baseUrl`: http://localhost:3001
    - `token`: Your JWT token
 3. Use the imported collection
+
+### Generate Postman Collection
+
+```bash
+# Generate Postman collection from OpenAPI spec
+npm run postman:generate
+```
 
 ### Automated Testing
 

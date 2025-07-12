@@ -12,7 +12,13 @@
     "test:coverage": "jest --coverage",
     "test:integration": "node tests/integration/core-connection.test.js",
     "lint": "eslint src --ext .js",
-    "lint:fix": "eslint src --ext .js --fix"
+    "lint:fix": "eslint src --ext .js --fix",
+    "monitoring:start": "./scripts/start-monitoring.sh",
+    "monitoring:stop": "./scripts/stop-monitoring.sh",
+    "monitoring:logs": "docker-compose -f docker-compose.monitoring.yml logs -f",
+    "postman:generate": "node scripts/generate-postman-collection.js",
+    "test:deployment": "./scripts/test-deployment.sh",
+    "test:deployment:quick": "./scripts/test-deployment.sh --quick"
   },
   "keywords": [
     "autoweave",

@@ -197,6 +197,67 @@ npm run test:integration
 
 # Tests
 npm test
+
+# Start monitoring stack
+npm run monitoring:start
+```
+
+## 🎓 Getting Started
+
+### Quick Start (5 minutes)
+```bash
+# 1. Start the backend
+npm start
+
+# 2. Login and get a token
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+
+# 3. View API documentation
+open http://localhost:3001/api-docs
+
+# 4. Check system health
+curl http://localhost:3001/health
+```
+
+### Complete Tutorial
+Follow our comprehensive tutorial to master AutoWeave Backend:
+
+📖 **[Start the Tutorial](./TUTORIAL.md)** - From beginner to expert in 4 hours
+
+### Examples and Use Cases
+
+| Example | Description | Difficulty | Time |
+|---------|-------------|------------|------|
+| [01-quick-start](./examples/01-quick-start/) | Get up and running in 5 minutes | Beginner | 5 min |
+| [02-authentication](./examples/02-authentication/) | JWT tokens, API keys, permissions | Beginner | 15 min |
+| [03-service-management](./examples/03-service-management/) | Register and manage services | Beginner | 10 min |
+| [04-rest-api-integration](./examples/04-rest-api-integration/) | Connect external REST APIs | Intermediate | 20 min |
+| [05-database-integration](./examples/05-database-integration/) | Multi-database connections | Intermediate | 25 min |
+| [06-event-driven](./examples/06-event-driven/) | Pub/sub and event sourcing | Intermediate | 15 min |
+| [07-data-pipeline](./examples/07-data-pipeline/) | Build processing pipelines | Advanced | 30 min |
+| [08-analytics](./examples/08-analytics/) | Track events and build dashboards | Advanced | 30 min |
+| [09-monitoring](./examples/09-monitoring/) | Prometheus, Grafana, alerting | Advanced | 30 min |
+| [10-ecommerce-backend](./examples/10-ecommerce-backend/) | Complete e-commerce solution | Expert | 120 min |
+
+### Learning Paths
+
+#### 🔰 For Backend Developers
+`01 → 02 → 03 → 04 → 05 → 06 → 07 → 09 → 10`
+*Focus: APIs, databases, microservices*
+
+#### ⚙️ For DevOps Engineers  
+`01 → 02 → 09 → 03 → 04 → 05 → 10`
+*Focus: Monitoring, deployment, infrastructure*
+
+#### 🎨 For Full-Stack Developers
+`01 → 02 → 03 → 08 → 04 → 06 → 10`
+*Focus: API integration, analytics, user-facing features*
+
+#### 🏗️ For System Architects
+`01 → 06 → 07 → 09 → 10 → 05 → 04`
+*Focus: Architecture patterns, scalability, design*
 ```
 
 ## API Documentation

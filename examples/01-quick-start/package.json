@@ -1,0 +1,20 @@
+{
+  "name": "autoweave-backend-quick-start",
+  "version": "1.0.0",
+  "description": "Quick start example for AutoWeave Backend",
+  "main": "example.js",
+  "type": "module",
+  "scripts": {
+    "start": "node example.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "keywords": [
+    "autoweave",
+    "backend",
+    "example",
+    "quick-start"
+  ]
+}

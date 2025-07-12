@@ -3,7 +3,6 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import winston from 'winston';
-import * as promClient from 'prom-client';
 
 // Core components
 import ServiceManager from './core/service-manager/index.js';
@@ -34,23 +33,18 @@ const logger = winston.createLogger({
   ]
 });
 
-// Initialize Prometheus metrics
-const register = new promClient.Registry();
-promClient.collectDefaultMetrics({ register });
-
-// Custom metrics
-const httpRequestDuration = new promClient.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status'],
-  registers: [register]
-});
-
-const activeConnections = new promClient.Gauge({
-  name: 'websocket_active_connections',
-  help: 'Number of active WebSocket connections',
-  registers: [register]
-});
+// Import monitoring components
+import { metrics } from './monitoring/metrics.js';
+import { 
+  createMonitoringMiddleware, 
+  monitorWebSocket,
+  monitorService,
+  monitorEventBus,
+  monitorAnalytics,
+  monitorPipeline,
+  monitorIntegrations,
+  monitorDatabase
+} from './middleware/monitoring.js';
 
 // Initialize Express app
 const app = express();
@@ -65,30 +59,12 @@ app.use(express.urlencoded({ extended: true }));
 import Redis from 'ioredis';
 const redis = new Redis(config.redis);
 
-// Request logging and metrics
-app.use((req, res, next) => {
-  const start = Date.now();
-  
-  res.on('finish', () => {
-    const duration = (Date.now() - start) / 1000;
-    httpRequestDuration
-      .labels(req.method, req.route?.path || req.path, res.statusCode)
-      .observe(duration);
-    
-    logger.info('HTTP Request', {
-      method: req.method,
-      path: req.path,
-      status: res.statusCode,
-      duration: `${duration}s`
-    });
-  });
-  
-  next();
-});
+// Apply monitoring middleware
+app.use(createMonitoringMiddleware());
 
 // Initialize core components
-const serviceManager = new ServiceManager({ logger, config });
-const eventBus = new EventBus({ logger, config });
+const serviceManager = monitorService(new ServiceManager({ logger, config }));
+const eventBus = monitorEventBus(new EventBus({ logger, config }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -102,8 +78,8 @@ app.get('/health', (req, res) => {
 
 // Metrics endpoint
 app.get('/metrics', async (req, res) => {
-  res.set('Content-Type', register.contentType);
-  res.end(await register.metrics());
+  res.set('Content-Type', metrics.getContentType());
+  res.end(await metrics.getMetrics());
 });
 
 // Initialize services
@@ -114,36 +90,36 @@ import AnalyticsEngine from './services/analytics/analytics-engine.js';
 
 // Create storage adapters
 const storageAdapterFactory = new StorageAdapterFactory({ config, logger });
-const storageAdapters = {
+const storageAdapters = monitorDatabase({
   qdrant: storageAdapterFactory.createAdapter('qdrant', config.qdrant),
   redis: storageAdapterFactory.createAdapter('redis', config.redis),
   neo4j: storageAdapterFactory.createAdapter('neo4j', config.neo4j)
-};
+});
 
 // Initialize data pipeline
-const dataPipeline = new DataPipelineService({
+const dataPipeline = monitorPipeline(new DataPipelineService({
   logger,
   config: config.dataPipeline,
   eventBus,
   storageAdapters
-});
+}));
 
 // Initialize integration hub
-const integrationHub = new IntegrationHub({
+const integrationHub = monitorIntegrations(new IntegrationHub({
   logger,
   config: config,
   eventBus,
   dataPipeline,
   serviceManager
-});
+}));
 
 // Initialize analytics engine
-const analyticsEngine = new AnalyticsEngine({
+const analyticsEngine = monitorAnalytics(new AnalyticsEngine({
   logger,
   config: config,
   eventBus,
   storageAdapters
-});
+}));
 
 // Import AutoWeave Core Connector
 import AutoWeaveCoreConnector from './connectors/autoweave-core-connector.js';
@@ -191,9 +167,10 @@ app.use('/api/integration', authMiddleware.authenticate(), createIntegrationRout
 app.use('/api/pipeline', authMiddleware.authenticate(), (await import('./routes/pipeline.js')).default(dataPipeline));
 app.use('/api/core', authMiddleware.authenticate(), createCoreRouter(coreConnector));
 
-// WebSocket handling
+// WebSocket handling with monitoring
+monitorWebSocket(wss);
+
 wss.on('connection', (ws, req) => {
-  activeConnections.inc();
   logger.info('WebSocket connection established', {
     ip: req.socket.remoteAddress
   });
@@ -234,7 +211,6 @@ wss.on('connection', (ws, req) => {
   });
   
   ws.on('close', () => {
-    activeConnections.dec();
     logger.info('WebSocket connection closed');
   });
   
@@ -268,8 +244,8 @@ const METRICS_PORT = process.env.METRICS_PORT || 9090;
 if (METRICS_PORT !== PORT) {
   const metricsApp = express();
   metricsApp.get('/metrics', async (req, res) => {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
+    res.set('Content-Type', metrics.getContentType());
+    res.end(await metrics.getMetrics());
   });
   
   metricsApp.listen(METRICS_PORT, () => {

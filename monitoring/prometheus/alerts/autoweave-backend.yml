@@ -1,0 +1,181 @@
+groups:
+  - name: autoweave_backend_alerts
+    interval: 30s
+    rules:
+      # HTTP alerts
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has error rate of {{ $value | humanizePercentage }} (> 5%)"
+
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))
+          > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "High response time on {{ $labels.service }}"
+          description: "{{ $labels.service }} p95 response time is {{ $value }}s (> 1s)"
+
+      - alert: HighRequestRate
+        expr: |
+          sum(rate(http_requests_total[1m])) by (service)
+          > 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "High request rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} is receiving {{ $value }} requests per second"
+
+      # Service health alerts
+      - alert: ServiceDown
+        expr: services_total{status="error"} > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: services
+        annotations:
+          summary: "Service(s) in error state"
+          description: "{{ $value }} service(s) are in error state"
+
+      - alert: ServiceHealthCheckFailing
+        expr: |
+          sum(rate(service_health_checks_total{status="failure"}[5m])) by (service)
+          > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: services
+        annotations:
+          summary: "Health checks failing for {{ $labels.service }}"
+          description: "{{ $labels.service }} health checks are failing at {{ $value }} per second"
+
+      # WebSocket alerts
+      - alert: HighWebSocketConnections
+        expr: websocket_connections_active > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "{{ $value }} active WebSocket connections (> 1000)"
+
+      # Database alerts
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          database_connections_active{type="active"} 
+          / 
+          database_connections_active{type="total"} 
+          > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $labels.database }} connection pool is {{ $value | humanizePercentage }} full"
+
+      - alert: DatabaseHighQueryTime
+        expr: |
+          histogram_quantile(0.95, sum(rate(database_query_duration_seconds_bucket[5m])) by (database, le))
+          > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database query time for {{ $labels.database }}"
+          description: "{{ $labels.database }} p95 query time is {{ $value }}s (> 0.5s)"
+
+      # Pipeline alerts
+      - alert: PipelineExecutionFailures
+        expr: |
+          sum(rate(pipeline_executions_total{status="failure"}[5m])) by (pipeline)
+          > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: pipeline
+        annotations:
+          summary: "Pipeline {{ $labels.pipeline }} has high failure rate"
+          description: "{{ $labels.pipeline }} is failing at {{ $value }} executions per second"
+
+      - alert: PipelineProcessingTimeSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(pipeline_processing_duration_seconds_bucket[5m])) by (pipeline, le))
+          > 60
+        for: 10m
+        labels:
+          severity: warning
+          component: pipeline
+        annotations:
+          summary: "Pipeline {{ $labels.pipeline }} processing is slow"
+          description: "{{ $labels.pipeline }} p95 processing time is {{ $value }}s (> 60s)"
+
+      # Analytics alerts
+      - alert: AnalyticsQuerySlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(analytics_query_duration_seconds_bucket[5m])) by (query_type, le))
+          > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: analytics
+        annotations:
+          summary: "Analytics query {{ $labels.query_type }} is slow"
+          description: "{{ $labels.query_type }} p95 query time is {{ $value }}s (> 5s)"
+
+      # Integration alerts
+      - alert: IntegrationErrors
+        expr: |
+          sum(rate(integration_errors_total[5m])) by (integration)
+          > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: integration
+        annotations:
+          summary: "Integration {{ $labels.integration }} has errors"
+          description: "{{ $labels.integration }} is generating {{ $value }} errors per second"
+
+      # Authentication alerts
+      - alert: HighAuthFailureRate
+        expr: |
+          sum(rate(auth_attempts_total{status="failure"}[5m]))
+          /
+          sum(rate(auth_attempts_total[5m]))
+          > 0.3
+        for: 5m
+        labels:
+          severity: critical
+          component: auth
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value | humanizePercentage }} (> 30%)"
+
+      - alert: RateLimitingActive
+        expr: |
+          sum(rate(auth_rate_limit_hits_total[1m])) by (endpoint)
+          > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Rate limiting active on {{ $labels.endpoint }}"
+          description: "{{ $labels.endpoint }} is rate limiting {{ $value }} requests per second"

@@ -1,0 +1,70 @@
+global:
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'autoweave-alerts@example.com'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+# The root route on which each incoming alert enters
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  
+  # Child routes
+  routes:
+    # Critical alerts
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      continue: true
+      
+    # Database alerts
+    - match:
+        component: database
+      receiver: 'database-team'
+      
+    # Auth alerts
+    - match:
+        component: auth
+      receiver: 'security-team'
+
+# Receivers
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#autoweave-alerts'
+        title: 'AutoWeave Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .CommonAnnotations.summary }}'
+
+  - name: 'database-team'
+    email_configs:
+      - to: 'database-team@example.com'
+        headers:
+          Subject: 'Database Alert: {{ .GroupLabels.alertname }}'
+          
+  - name: 'security-team'
+    email_configs:
+      - to: 'security-team@example.com'
+        headers:
+          Subject: 'Security Alert: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - channel: '#security-alerts'
+        title: 'Security Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+# Inhibition rules
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']

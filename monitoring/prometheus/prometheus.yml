@@ -1,0 +1,68 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'autoweave-monitor'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # AutoWeave Backend metrics
+  - job_name: 'autoweave-backend'
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+        labels:
+          service: 'backend'
+          component: 'api'
+    metrics_path: '/metrics'
+
+  # AutoWeave Backend metrics (dedicated port)
+  - job_name: 'autoweave-backend-metrics'
+    static_configs:
+      - targets: ['host.docker.internal:9090']
+        labels:
+          service: 'backend'
+          component: 'metrics'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'monitoring'
+          component: 'prometheus'
+
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'monitoring'
+          component: 'node-exporter'
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'monitoring'
+          component: 'grafana'
+
+  # Alertmanager metrics
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+        labels:
+          service: 'monitoring'
+          component: 'alertmanager'
