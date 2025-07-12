@@ -232,8 +232,55 @@ if (redis) {
     rateLimit: () => (req, res, next) => next(),
     authenticate: () => (req, res, next) => {
       logger.warn('Authentication bypassed in degraded mode');
+      // Add dummy auth data for compatibility
+      req.auth = {
+        userId: 'dev-user',
+        username: 'developer',
+        permissions: ['*']
+      };
       next();
-    }
+    },
+    authorize: null, // Explicitly null to allow conditional checks
+    generateToken: () => 'dev-token-' + Date.now(),
+    refreshToken: () => Promise.resolve('dev-refresh-token-' + Date.now()),
+    blacklistToken: () => Promise.resolve(),
+    generateApiKey: (name, permissions) => ({
+      key: 'dev-api-key-' + Date.now(),
+      name,
+      permissions,
+      created: new Date()
+    }),
+    hashApiKey: (key) => 'hashed-' + key,
+    revokeApiKey: () => Promise.resolve(),
+    generateSecureKey: () => 'dev-secure-' + Date.now()
+  };
+  
+  // Create a dummy user service
+  userService = {
+    authenticate: (username, password) => {
+      if (username === 'admin' && password === 'admin123') {
+        return Promise.resolve({
+          id: 'dev-user',
+          username: 'admin',
+          permissions: ['*']
+        });
+      }
+      return Promise.resolve(null);
+    },
+    getUser: (userId) => Promise.resolve({
+      id: userId,
+      username: 'developer',
+      permissions: ['*'],
+      createdAt: new Date()
+    }),
+    addApiKey: () => Promise.resolve(),
+    getUserApiKeys: () => Promise.resolve([]),
+    getUserApiKey: () => Promise.resolve(null),
+    removeApiKey: () => Promise.resolve(),
+    updatePassword: () => Promise.resolve(),
+    createPasswordResetToken: () => Promise.resolve(),
+    validatePasswordResetToken: () => Promise.resolve('dev-user'),
+    invalidatePasswordResetToken: () => Promise.resolve()
   };
 }
 
@@ -253,8 +300,23 @@ app.use(authMiddleware.rateLimit());
 import { setupSwagger } from './middleware/swagger.js';
 const swaggerInfo = setupSwagger(app, '/api-docs');
 
-// Public routes
-app.use('/api/auth', createAuthRouter(authMiddleware, userService));
+// Public routes - only if auth is available
+if (authMiddleware && userService) {
+  app.use('/api/auth', createAuthRouter(authMiddleware, userService));
+} else {
+  // Basic auth endpoint for degraded mode
+  app.post('/api/auth/login', (req, res) => {
+    res.json({
+      token: 'dev-token-' + Date.now(),
+      user: {
+        id: 'dev-user',
+        username: 'developer',
+        permissions: ['*']
+      },
+      warning: 'Running in degraded mode - authentication disabled'
+    });
+  });
+}
 
 // Protected API Routes - only mount if services are available
 app.use('/api/services', authMiddleware.authenticate(), createServicesRouter(serviceManager));

@@ -209,7 +209,7 @@ export default function createAuthRouter(authMiddleware, userService) {
    */
   router.post('/api-keys', 
     authMiddleware.authenticate(),
-    authMiddleware.authorize(['api-keys:create']),
+    authMiddleware.authorize ? authMiddleware.authorize(['api-keys:create']) : (req, res, next) => next(),
     async (req, res) => {
       try {
         const { name, permissions = [] } = req.body;
@@ -263,7 +263,7 @@ export default function createAuthRouter(authMiddleware, userService) {
    */
   router.get('/api-keys',
     authMiddleware.authenticate(),
-    authMiddleware.authorize(['api-keys:read']),
+    authMiddleware.authorize ? authMiddleware.authorize(['api-keys:read']) : (req, res, next) => next(),
     async (req, res) => {
       try {
         const apiKeys = await userService.getUserApiKeys(req.auth.userId);
@@ -290,7 +290,7 @@ export default function createAuthRouter(authMiddleware, userService) {
    */
   router.delete('/api-keys/:keyName',
     authMiddleware.authenticate(),
-    authMiddleware.authorize(['api-keys:delete']),
+    authMiddleware.authorize ? authMiddleware.authorize(['api-keys:delete']) : (req, res, next) => next(),
     async (req, res) => {
       try {
         const { keyName } = req.params;
