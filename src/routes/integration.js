@@ -34,7 +34,7 @@ export default (integrationHub) => {
   /**
    * List all integrations
    */
-  router.get('/', (req, res, next) => {
+  router.get('/list', (req, res, next) => {
     try {
       const { type, status, tag } = req.query;
       
@@ -44,10 +44,7 @@ export default (integrationHub) => {
         tag
       });
       
-      res.json({ 
-        integrations,
-        total: integrations.length
-      });
+      res.json(integrations);
     } catch (error) {
       next(error);
     }

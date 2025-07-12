@@ -1,5 +1,7 @@
 import { EventEmitter } from 'eventemitter3';
 import { v4 as uuidv4 } from 'uuid';
+import net from 'net';
+import fetch from 'node-fetch';
 import IntegrationAgentAdapter from './integration-agent-adapter.js';
 
 /**
@@ -27,6 +29,62 @@ class IntegrationHub extends EventEmitter {
     this.plugins = new Map();
     this.webhooks = new Map();
     
+    // Port management
+    this.usedPorts = new Set();
+    this.portRange = { min: 3000, max: 9999 };
+    
+    // Supported integration types with defaults
+    this.integrationTypes = {
+      'web-ui': { 
+        defaultPort: 3000, 
+        healthPath: '/health',
+        healthTimeout: 5000,
+        requiredFields: ['apiUrl']
+      },
+      'development-tool': { 
+        defaultPort: 5000, 
+        healthPath: '/api/health',
+        healthTimeout: 5000,
+        requiredFields: ['apiUrl']
+      },
+      'api-service': { 
+        defaultPort: 8000, 
+        healthPath: '/status',
+        healthTimeout: 3000,
+        requiredFields: ['apiUrl']
+      },
+      'database': { 
+        defaultPort: 5432, 
+        healthPath: null,
+        healthTimeout: 10000,
+        requiredFields: ['host', 'port']
+      },
+      'message-queue': {
+        defaultPort: 5672,
+        healthPath: '/api/overview',
+        healthTimeout: 5000,
+        requiredFields: ['host', 'port']
+      },
+      'openapi': {
+        defaultPort: 8080,
+        healthPath: '/docs',
+        healthTimeout: 3000,
+        requiredFields: ['openAPISpec']
+      },
+      'webhook': {
+        defaultPort: 8000,
+        healthPath: '/webhook/health',
+        healthTimeout: 3000,
+        requiredFields: ['url']
+      },
+      'plugin': {
+        defaultPort: null,
+        healthPath: null,
+        healthTimeout: null,
+        requiredFields: ['source']
+      }
+    };
+    
     // Metrics
     this.metrics = {
       totalIntegrations: 0,
@@ -38,6 +96,179 @@ class IntegrationHub extends EventEmitter {
     
     this.setupEventHandlers();
     this.startAutoDiscovery();
+  }
+
+  /**
+   * Check if a port is available
+   */
+  async isPortAvailable(port) {
+    return new Promise((resolve) => {
+      const server = net.createServer();
+      
+      server.listen(port, () => {
+        server.close(() => resolve(true));
+      });
+      
+      server.on('error', () => resolve(false));
+    });
+  }
+
+  /**
+   * Find next available port starting from a given port
+   */
+  async findAvailablePort(startPort = 3000, maxAttempts = 100) {
+    for (let i = 0; i < maxAttempts; i++) {
+      const port = startPort + i;
+      if (port > this.portRange.max) break;
+      
+      if (!this.usedPorts.has(port) && await this.isPortAvailable(port)) {
+        this.usedPorts.add(port);
+        return port;
+      }
+    }
+    
+    throw new Error(`No available port found in range ${startPort}-${startPort + maxAttempts}`);
+  }
+
+  /**
+   * Validate integration configuration
+   */
+  validateIntegrationConfig(config) {
+    const { name, type } = config;
+    
+    if (!name || typeof name !== 'string') {
+      throw new Error('Integration name is required and must be a string');
+    }
+    
+    if (!type || typeof type !== 'string') {
+      throw new Error('Integration type is required and must be a string');
+    }
+    
+    const typeConfig = this.integrationTypes[type];
+    if (!typeConfig) {
+      const supportedTypes = Object.keys(this.integrationTypes).join(', ');
+      throw new Error(`Unsupported integration type: ${type}. Supported types: ${supportedTypes}`);
+    }
+    
+    // Check required fields
+    for (const field of typeConfig.requiredFields) {
+      if (!config.config || !config.config[field]) {
+        throw new Error(`Required field '${field}' is missing for integration type '${type}'`);
+      }
+    }
+    
+    return typeConfig;
+  }
+
+  /**
+   * Validate service health before integration
+   */
+  async validateServiceHealth(config, typeConfig) {
+    if (!typeConfig.healthPath) {
+      this.logger.info('No health check available for this integration type');
+      return true;
+    }
+    
+    const healthUrl = this.buildHealthUrl(config, typeConfig);
+    
+    try {
+      this.logger.info(`Checking service health at: ${healthUrl}`);
+      
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        timeout: typeConfig.healthTimeout,
+        headers: {
+          'User-Agent': 'AutoWeave-Integration-Hub/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Health check failed with status: ${response.status} ${response.statusText}`);
+      }
+      
+      this.logger.info(`Service health check passed: ${healthUrl}`);
+      return true;
+      
+    } catch (error) {
+      this.logger.warn(`Service health check failed: ${error.message}`);
+      
+      // For development mode, allow bypassing health checks
+      if (process.env.NODE_ENV === 'development' || config.bypassHealthCheck) {
+        this.logger.warn('Bypassing health check in development mode');
+        return true;
+      }
+      
+      throw new Error(`Service not reachable: ${healthUrl} - ${error.message}`);
+    }
+  }
+
+  /**
+   * Build health check URL from config
+   */
+  buildHealthUrl(config, typeConfig) {
+    let baseUrl = config.apiUrl || config.url || config.host;
+    
+    if (!baseUrl) {
+      throw new Error('No base URL found in configuration');
+    }
+    
+    // Ensure base URL has protocol
+    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      baseUrl = `http://${baseUrl}`;
+    }
+    
+    // Add port if specified
+    if (config.port && !baseUrl.includes(':' + config.port)) {
+      const url = new URL(baseUrl);
+      url.port = config.port;
+      baseUrl = url.toString();
+    }
+    
+    // Remove trailing slash
+    baseUrl = baseUrl.replace(/\/$/, '');
+    
+    return `${baseUrl}${typeConfig.healthPath}`;
+  }
+
+  /**
+   * Resolve port conflicts automatically
+   */
+  async resolvePortConflict(integration) {
+    const originalPort = integration.config.port;
+    
+    if (!originalPort) return integration;
+    
+    this.logger.info(`Checking for port conflicts on port ${originalPort}`);
+    
+    if (await this.isPortAvailable(originalPort)) {
+      this.usedPorts.add(originalPort);
+      return integration;
+    }
+    
+    this.logger.warn(`Port conflict detected on ${originalPort}, searching for alternative...`);
+    
+    // Try to find alternative port
+    try {
+      const alternativePort = await this.findAvailablePort(originalPort + 1, 10);
+      integration.config.port = alternativePort;
+      integration.config.originalPort = originalPort;
+      
+      // Update URLs if present
+      if (integration.config.apiUrl) {
+        integration.config.apiUrl = integration.config.apiUrl.replace(`:${originalPort}`, `:${alternativePort}`);
+      }
+      if (integration.config.url) {
+        integration.config.url = integration.config.url.replace(`:${originalPort}`, `:${alternativePort}`);
+      }
+      
+      this.logger.info(`Port conflict resolved: ${originalPort} → ${alternativePort}`);
+      integration.portConflictResolved = true;
+      
+      return integration;
+      
+    } catch (error) {
+      throw new Error(`Cannot resolve port conflict for ${originalPort}: ${error.message}`);
+    }
   }
 
   /**
@@ -58,6 +289,11 @@ class IntegrationHub extends EventEmitter {
     this.adapter.on('integration:deleted', (data) => {
       this.emit('integration:deleted', data);
       this.metrics.activeIntegrations--;
+      
+      // Release port if used
+      if (data.config && data.config.port) {
+        this.usedPorts.delete(data.config.port);
+      }
     });
     
     // Listen for integration events
@@ -116,73 +352,217 @@ class IntegrationHub extends EventEmitter {
    * Register a new integration
    */
   async registerIntegration(integrationConfig) {
+    this.logger.info(`Registering integration: ${integrationConfig.name} (${integrationConfig.type})`);
+    
+    // Step 1: Validate configuration
+    const typeConfig = this.validateIntegrationConfig(integrationConfig);
+    
     const { name, type, config } = integrationConfig;
-    
-    if (!name || !type) {
-      throw new Error('Integration name and type are required');
-    }
-    
     const integrationId = `hub-${type}-${uuidv4()}`;
     
-    const integration = {
+    let integration = {
       id: integrationId,
       name,
       type,
-      config,
+      config: { ...config },
       status: 'initializing',
       createdAt: new Date(),
+      typeConfig,
       metrics: {
         requests: 0,
         errors: 0,
         lastRequest: null,
-        avgResponseTime: 0
+        avgResponseTime: 0,
+        healthChecks: {
+          total: 0,
+          successful: 0,
+          failed: 0,
+          lastCheck: null
+        }
       }
     };
     
+    try {
+      // Step 2: Handle auto port detection if enabled
+      if (config.autoDetectPort && typeConfig.defaultPort) {
+        integration.config.port = await this.findAvailablePort(typeConfig.defaultPort);
+        this.logger.info(`Auto-detected port: ${integration.config.port}`);
+      }
+      
+      // Step 3: Resolve port conflicts
+      integration = await this.resolvePortConflict(integration);
+      
+      // Step 4: Validate service health (if applicable)
+      if (config.skipHealthCheck !== true) {
+        await this.validateServiceHealth(integration.config, typeConfig);
+      } else {
+        this.logger.warn('Health check skipped by user request');
+      }
+      
+    } catch (error) {
+      this.logger.error(`Pre-registration validation failed: ${error.message}`);
+      integration.status = 'failed';
+      integration.error = error.message;
+      throw error;
+    }
+    
     // Type-specific initialization
-    switch (type) {
-      case 'openapi':
-        if (!config.openAPISpec) {
-          throw new Error('OpenAPI specification is required');
-        }
-        await this.adapter.createIntegrationFromOpenAPI({
-          name,
-          openAPISpec: config.openAPISpec,
-          module: integration,
-          autoRegister: config.autoRegister !== false
-        });
-        break;
-        
-      case 'webhook':
-        await this.registerWebhook(integration);
-        break;
-        
-      case 'plugin':
-        await this.registerPlugin(integration);
-        break;
-        
-      case 'database':
-        await this.registerDatabaseIntegration(integration);
-        break;
-        
-      case 'message-queue':
-        await this.registerMessageQueueIntegration(integration);
-        break;
-        
-      default:
-        throw new Error(`Unknown integration type: ${type}`);
+    try {
+      switch (type) {
+        case 'openapi':
+          if (!config.openAPISpec) {
+            throw new Error('OpenAPI specification is required');
+          }
+          await this.adapter.createIntegrationFromOpenAPI({
+            name,
+            openAPISpec: config.openAPISpec,
+            module: integration,
+            autoRegister: config.autoRegister !== false
+          });
+          break;
+          
+        case 'webhook':
+          await this.registerWebhook(integration);
+          break;
+          
+        case 'plugin':
+          await this.registerPlugin(integration);
+          break;
+          
+        case 'database':
+          await this.registerDatabaseIntegration(integration);
+          break;
+          
+        case 'message-queue':
+          await this.registerMessageQueueIntegration(integration);
+          break;
+          
+        case 'development-tool':
+        case 'web-ui':
+        case 'api-service':
+          // Web-based tools and API services
+          await this.setupWebBasedIntegration(integration);
+          break;
+          
+        default:
+          // For unsupported types, create basic integration
+          this.logger.warn(`Integration type '${type}' not fully supported, creating basic integration`);
+          await this.setupWebBasedIntegration(integration);
+          break;
+      }
+    } catch (error) {
+      this.logger.error(`Type-specific initialization failed: ${error.message}`);
+      integration.status = 'failed';
+      integration.error = error.message;
+      throw error;
     }
     
     // Store in registry
     this.registry.set(integrationId, integration);
     
-    // Update status
+    // Update status and metrics
     integration.status = 'active';
+    integration.registeredAt = new Date();
+    this.metrics.totalIntegrations++;
+    this.metrics.activeIntegrations++;
     
-    this.logger.info(`Integration registered: ${name} (${integrationId})`);
+    // Start health monitoring for web-based integrations
+    if (['development-tool', 'web-ui', 'api-service'].includes(type)) {
+      this.startHealthMonitoring(integration);
+    }
+    
+    this.logger.info(`Integration registered successfully: ${name} (${integrationId})`);
     this.emit('integration:registered', integration);
     
     return integrationId;
+  }
+
+  /**
+   * Setup web-based integration (development-tool, web-ui, api-service)
+   */
+  async setupWebBasedIntegration(integration) {
+    const { config, typeConfig } = integration;
+    
+    integration.healthCheck = {
+      url: this.buildHealthUrl(config, typeConfig),
+      interval: typeConfig.healthTimeout || 30000,
+      timeout: 5000,
+      retries: 3,
+      enabled: true
+    };
+    
+    integration.capabilities = {
+      supportsWebSocket: !!config.wsUrl,
+      supportsFileOperations: config.projectsPath ? true : false,
+      supportsCodeExecution: ['development-tool'].includes(integration.type),
+      supportsBatchOperations: true
+    };
+    
+    // Setup WebSocket connection if available
+    if (config.wsUrl) {
+      integration.websocket = {
+        url: config.wsUrl,
+        connected: false,
+        lastConnected: null,
+        reconnectAttempts: 0
+      };
+    }
+    
+    this.logger.info(`Web-based integration configured: ${integration.name}`);
+  }
+
+  /**
+   * Start health monitoring for an integration
+   */
+  startHealthMonitoring(integration) {
+    if (!integration.healthCheck || !integration.healthCheck.enabled) {
+      return;
+    }
+    
+    const checkHealth = async () => {
+      try {
+        integration.metrics.healthChecks.total++;
+        
+        const response = await fetch(integration.healthCheck.url, {
+          method: 'GET',
+          timeout: integration.healthCheck.timeout,
+          headers: { 'User-Agent': 'AutoWeave-Health-Monitor/1.0' }
+        });
+        
+        if (response.ok) {
+          integration.metrics.healthChecks.successful++;
+          integration.healthStatus = 'healthy';
+          integration.lastHealthCheck = new Date();
+          
+          if (integration.status === 'unhealthy') {
+            integration.status = 'active';
+            this.logger.info(`Integration recovered: ${integration.name}`);
+            this.emit('integration:recovered', integration);
+          }
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+      } catch (error) {
+        integration.metrics.healthChecks.failed++;
+        integration.healthStatus = 'unhealthy';
+        integration.lastHealthError = error.message;
+        
+        if (integration.status === 'active') {
+          integration.status = 'unhealthy';
+          this.logger.warn(`Integration unhealthy: ${integration.name} - ${error.message}`);
+          this.emit('integration:unhealthy', integration);
+        }
+      }
+      
+      integration.metrics.healthChecks.lastCheck = new Date();
+    };
+    
+    // Initial health check
+    setTimeout(checkHealth, 1000);
+    
+    // Periodic health checks
+    integration.healthCheckInterval = setInterval(checkHealth, integration.healthCheck.interval);
   }
 
   /**
