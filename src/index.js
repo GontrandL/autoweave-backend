@@ -61,6 +61,10 @@ const wss = new WebSocketServer({ server });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Initialize Redis for auth
+import Redis from 'ioredis';
+const redis = new Redis(config.redis);
+
 // Request logging and metrics
 app.use((req, res, next) => {
   const start = Date.now();
@@ -152,20 +156,36 @@ const coreConnector = new AutoWeaveCoreConnector({
   serviceManager
 });
 
+// Import authentication
+import { createAuthMiddleware } from './middleware/auth.js';
+import { createUserService } from './services/user-service.js';
+
+// Initialize authentication
+const userService = createUserService({ logger, redis, config });
+const authMiddleware = createAuthMiddleware({ config, logger, redis });
+
 // Import route handlers
 import createServicesRouter from './routes/services.js';
 import createEventsRouter from './routes/events.js';
 import createAnalyticsRouter from './routes/analytics.js';
 import createIntegrationRouter from './routes/integration.js';
 import createCoreRouter from './routes/core.js';
+import createAuthRouter from './routes/auth.js';
 
-// API Routes
-app.use('/api/services', createServicesRouter(serviceManager));
-app.use('/api/events', createEventsRouter(eventBus));
-app.use('/api/analytics', createAnalyticsRouter(analyticsEngine));
-app.use('/api/integration', createIntegrationRouter(integrationHub));
-app.use('/api/pipeline', (await import('./routes/pipeline.js')).default(dataPipeline));
-app.use('/api/core', createCoreRouter(coreConnector));
+// Apply security middleware
+app.use(authMiddleware.cors());
+app.use(authMiddleware.rateLimit());
+
+// Public routes
+app.use('/api/auth', createAuthRouter(authMiddleware, userService));
+
+// Protected API Routes
+app.use('/api/services', authMiddleware.authenticate(), createServicesRouter(serviceManager));
+app.use('/api/events', authMiddleware.authenticate(), createEventsRouter(eventBus));
+app.use('/api/analytics', authMiddleware.authenticate(), createAnalyticsRouter(analyticsEngine));
+app.use('/api/integration', authMiddleware.authenticate(), createIntegrationRouter(integrationHub));
+app.use('/api/pipeline', authMiddleware.authenticate(), (await import('./routes/pipeline.js')).default(dataPipeline));
+app.use('/api/core', authMiddleware.authenticate(), createCoreRouter(coreConnector));
 
 // WebSocket handling
 wss.on('connection', (ws, req) => {
