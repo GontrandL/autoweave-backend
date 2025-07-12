@@ -84,7 +84,7 @@ class Neo4jAdapter {
         } finally {
           await session.close();
         }
-      }.bind(this)
+      }
     };
   }
 

@@ -53,7 +53,7 @@ class QdrantAdapter {
           this.logger.error('Qdrant cursor error:', error);
           throw error;
         }
-      }.bind(this)
+      }
     };
   }
 

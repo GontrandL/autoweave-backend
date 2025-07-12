@@ -127,7 +127,7 @@ class RedisAdapter {
           this.logger.error('Redis cursor error:', error);
           throw error;
         }
-      }.bind(this)
+      }
     };
   }
 
@@ -172,7 +172,7 @@ class RedisAdapter {
           this.logger.error('Redis stream cursor error:', error);
           throw error;
         }
-      }.bind(this)
+      }
     };
   }
 
