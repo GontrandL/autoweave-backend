@@ -123,6 +123,13 @@ const config = {
     slackWebhook: process.env.SLACK_WEBHOOK_URL,
     sentryDsn: process.env.SENTRY_DSN,
     datadogApiKey: process.env.DATADOG_API_KEY
+  },
+  
+  // AutoWeave Core connection
+  autoweaveCore: {
+    baseUrl: process.env.AUTOWEAVE_CORE_URL || 'http://localhost:3000',
+    wsUrl: process.env.AUTOWEAVE_CORE_WS_URL || 'ws://localhost:3000/ws',
+    anpServerUrl: process.env.ANP_SERVER_URL || 'http://localhost:8083'
   }
 };
 

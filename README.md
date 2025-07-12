@@ -1,10 +1,55 @@
 # AutoWeave Backend
 
-A scalable, event-driven backend architecture for the AutoWeave ecosystem.
+A scalable, event-driven backend architecture for the AutoWeave ecosystem with seamless integration to AutoWeave Core.
 
-## Architecture Overview
+## Overview
+
+The AutoWeave Backend provides enterprise-grade services including analytics, data pipelines, integration hub, and advanced monitoring. It connects seamlessly with AutoWeave Core via WebSocket and HTTP APIs, extending the agent orchestration capabilities with powerful backend services.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    AutoWeave Backend                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐ │
+│  │   Service    │  │   Event Bus   │  │  AutoWeave   │ │
+│  │   Manager    │  │  (Redis Pub/  │  │    Core      │ │
+│  │             │  │     Sub)      │  │  Connector   │ │
+│  └─────────────┘  └──────────────┘  └───────────────┘ │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │                  Services Layer                  │   │
+│  ├─────────────┬───────────────┬──────────────────┤   │
+│  │   Data      │  Integration  │    Analytics     │   │
+│  │  Pipeline   │      Hub       │     Engine       │   │
+│  └─────────────┴───────────────┴──────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │               Storage Adapters                   │   │
+│  ├─────────────┬───────────────┬──────────────────┤   │
+│  │   Qdrant    │     Redis      │  Neo4j/Memgraph  │   │
+│  │  (Vector)   │    (Cache)     │     (Graph)      │   │
+│  └─────────────┴───────────────┴──────────────────┘   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+                            ↕
+                    WebSocket + HTTP
+                            ↕
+┌─────────────────────────────────────────────────────────┐
+│                    AutoWeave Core                       │
+│  (Agent Weaver, Memory System, MCP Discovery, ANP)      │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### Core Components
+
+#### AutoWeave Core Connector
+- **Bidirectional Communication**: WebSocket + HTTP connection to Core
+- **Service Registration**: Automatic registration via ANP (Agent Network Protocol)
+- **Event Synchronization**: Real-time event forwarding between Core and Backend
+- **Auto-reconnection**: Exponential backoff retry mechanism
 
 #### Service Manager
 - **Service Registry**: Dynamic service registration and discovery
@@ -103,6 +148,7 @@ A scalable, event-driven backend architecture for the AutoWeave ecosystem.
 - Redis (for event bus)
 - Qdrant (for vector storage)
 - Neo4j (for graph data)
+- AutoWeave Core (optional, for full integration)
 
 ### Installation
 ```bash
@@ -114,6 +160,11 @@ Create a `.env` file:
 ```env
 NODE_ENV=development
 PORT=3001
+
+# AutoWeave Core Connection
+AUTOWEAVE_CORE_URL=http://localhost:3000
+AUTOWEAVE_CORE_WS_URL=ws://localhost:3000/ws
+ANP_SERVER_URL=http://localhost:8083
 
 # Redis
 REDIS_HOST=localhost
@@ -135,17 +186,28 @@ LOG_LEVEL=info
 
 ### Running
 ```bash
-# Development
+# Development (auto-connects to Core if available)
 npm run dev
 
 # Production
 npm start
+
+# Run with Core integration test
+npm run test:integration
 
 # Tests
 npm test
 ```
 
 ## API Documentation
+
+### Core Integration
+- `GET /api/core/status` - Get Core connection status
+- `POST /api/core/connect` - Connect to AutoWeave Core
+- `POST /api/core/disconnect` - Disconnect from Core
+- `GET /api/core/agents/:id` - Get agent from Core
+- `POST /api/core/memory/search` - Search Core memory
+- `POST /api/core/events` - Forward event to Core
 
 ### Service Registry
 - `POST /api/services/register` - Register a new service
@@ -214,6 +276,24 @@ npm test
 - Data encryption
 - Input validation
 - Security headers
+
+## Core Integration
+
+The backend automatically connects to AutoWeave Core on startup, providing:
+
+- **Service Registration**: All backend services are registered with Core via ANP
+- **Event Forwarding**: Key events are synchronized between systems
+- **Memory Access**: Direct access to Core's memory system
+- **Agent Management**: Manage agents through backend APIs
+
+See [CORE_INTEGRATION.md](docs/CORE_INTEGRATION.md) for detailed integration guide.
+
+## Documentation
+
+- [Analytics Engine Guide](docs/ANALYTICS_GUIDE.md) - Comprehensive analytics documentation
+- [Core Integration Guide](docs/CORE_INTEGRATION.md) - AutoWeave Core integration details
+- [API Reference](docs/API_REFERENCE.md) - Complete API documentation
+- [Contributing Guide](docs/CONTRIBUTING.md) - Development guidelines
 
 ## Contributing
 

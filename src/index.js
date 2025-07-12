@@ -141,11 +141,23 @@ const analyticsEngine = new AnalyticsEngine({
   storageAdapters
 });
 
+// Import AutoWeave Core Connector
+import AutoWeaveCoreConnector from './connectors/autoweave-core-connector.js';
+
+// Initialize Core Connector
+const coreConnector = new AutoWeaveCoreConnector({
+  logger,
+  config,
+  eventBus,
+  serviceManager
+});
+
 // Import route handlers
 import createServicesRouter from './routes/services.js';
 import createEventsRouter from './routes/events.js';
 import createAnalyticsRouter from './routes/analytics.js';
 import createIntegrationRouter from './routes/integration.js';
+import createCoreRouter from './routes/core.js';
 
 // API Routes
 app.use('/api/services', createServicesRouter(serviceManager));
@@ -153,6 +165,7 @@ app.use('/api/events', createEventsRouter(eventBus));
 app.use('/api/analytics', createAnalyticsRouter(analyticsEngine));
 app.use('/api/integration', createIntegrationRouter(integrationHub));
 app.use('/api/pipeline', (await import('./routes/pipeline.js')).default(dataPipeline));
+app.use('/api/core', createCoreRouter(coreConnector));
 
 // WebSocket handling
 wss.on('connection', (ws, req) => {
@@ -240,15 +253,26 @@ if (METRICS_PORT !== PORT) {
   });
 }
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   logger.info(`AutoWeave Backend server listening on port ${PORT}`);
   logger.info(`WebSocket server ready on ws://localhost:${PORT}`);
   
   // Initialize services
-  serviceManager.startAll().catch(error => {
+  try {
+    await serviceManager.startAll();
+    logger.info('All services started successfully');
+    
+    // Connect to AutoWeave Core
+    try {
+      await coreConnector.connect();
+      logger.info('Connected to AutoWeave Core');
+    } catch (error) {
+      logger.warn('Failed to connect to AutoWeave Core, will retry:', error.message);
+    }
+  } catch (error) {
     logger.error('Failed to start services', error);
     process.exit(1);
-  });
+  }
 });
 
 // Graceful shutdown
@@ -264,6 +288,9 @@ process.on('SIGTERM', async () => {
   wss.clients.forEach(ws => {
     ws.close();
   });
+  
+  // Disconnect from AutoWeave Core
+  await coreConnector.disconnect();
   
   // Stop analytics engine
   await analyticsEngine.stop();
