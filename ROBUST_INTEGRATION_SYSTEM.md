@@ -1,15 +1,87 @@
-# 🚀 AutoWeave Robust Integration System
+# 🚀 AutoWeave Configuration & Conflict Resolution Engine
 
 ## Overview
 
-Le **Robust Integration System** d'AutoWeave est un système d'intégration enterprise-grade qui permet de connecter n'importe quel projet GitHub avec une intelligence contextuelle avancée.
+L'**AutoWeave Configuration & Conflict Resolution Engine** est une plateforme enterprise-grade qui combine :
 
-## 🎯 Fonctionnalités principales
+- 🔌 **Intégration intelligente** de projets GitHub
+- ⚙️ **Configuration automatique** selon le contexte détecté  
+- ⚔️ **Résolution de conflits** en temps réel
+- 🎯 **Orchestration de services** avec auto-discovery
 
-### ✅ **Auto-détection intelligente**
-- Scan automatique des ports disponibles (range 3000-9999)
-- Détection du type de projet (web-ui, api-service, development-tool, etc.)
-- Configuration automatique selon le framework détecté
+Plus qu'un simple système d'intégration, c'est un **moteur de configuration intelligent** qui résout automatiquement les conflits et optimise les déploiements.
+
+## 🎯 Trois moteurs en un
+
+### ⚙️ **MOTEUR DE CONFIGURATION AUTOMATIQUE**
+
+**Configuration intelligente selon le contexte détecté :**
+
+- **Détection de framework** : React, Vue, Next.js, FastAPI, SST, etc.
+- **Configuration spécialisée** : Ports, endpoints, capacités par type
+- **Templates adaptatifs** : Configuration optimale selon le projet
+- **Best practices** : Application automatique des bonnes pratiques
+
+**Exemples de configuration automatique :**
+```javascript
+// SST détecté → Configuration Infrastructure as Code
+{
+  type: "development-tool",
+  ports: [3000, 5173, 8080],
+  healthEndpoints: ["/health", "/api/health", "/_sst/health"],
+  capabilities: {
+    supportsIaC: true,
+    supportsServerless: true,
+    supportsAWS: true
+  }
+}
+
+// React détecté → Configuration SPA
+{
+  type: "web-ui", 
+  ports: [3000],
+  features: ["spa", "hot-reload", "build-optimization"],
+  buildCommands: ["npm run build", "npm run preview"]
+}
+```
+
+### ⚔️ **MOTEUR DE RÉSOLUTION DE CONFLITS**
+
+**Résolution automatique et intelligente :**
+
+- **Conflits de ports** : Détection + allocation automatique de ports alternatifs
+- **Conflits de configuration** : Merge intelligent des configurations
+- **Conflits de dépendances** : Résolution des incompatibilités
+- **Conflits de ressources** : Gestion optimale de l'allocation
+
+**Types de conflits résolus :**
+```javascript
+// 1. CONFLIT DE PORT
+Port 3000 occupé → Trouve automatiquement 3001
+URLs mises à jour automatiquement
+Configuration préservée
+
+// 2. CONFLIT DE CONFIGURATION  
+Service A: { timeout: 5000 }
+Service B: { timeout: 10000 }
+→ Résolution: { timeout: 7500 } // Moyenne intelligente
+
+// 3. CONFLIT DE DÉPENDANCES
+React 17 vs React 18 → Détection + recommandation migration
+Node 16 vs Node 18 → Validation compatibilité
+
+// 4. CONFLIT DE RESSOURCES
+Mémoire insuffisante → Optimisation automatique
+CPU surchargé → Load balancing intelligent
+```
+
+### 🔌 **MOTEUR D'INTÉGRATION INTELLIGENTE**
+
+**Intégration contextuelle et adaptative :**
+
+- **Auto-détection** : Scan automatique des ports disponibles (range 3000-9999)
+- **Détection de type** : web-ui, api-service, development-tool, etc.
+- **Intégration adaptative** : Configuration selon le framework détecté
 
 ### ✅ **Validation robuste**
 - Health checks avec retry automatique
@@ -345,6 +417,14 @@ const healthConfig = {
 3. Commit les changements (`git commit -m 'Add amazing feature'`)
 4. Push vers la branche (`git push origin feature/amazing-feature`)
 5. Ouvrir une Pull Request
+
+## 📚 Documentation complète
+
+- 📋 **[Guide système robuste](ROBUST_INTEGRATION_SYSTEM.md)** - Documentation complète
+- ⚔️ **[Guide résolution de conflits](CONFLICT_RESOLUTION_GUIDE.md)** - Résolution automatique avancée
+- ⚙️ **[Exemples de configuration](CONFIGURATION_EXAMPLES.md)** - Configuration intelligente par framework
+- 🚀 **[Guide déploiement Ubuntu](DEPLOYMENT_GUIDE.md)** - Installation production
+- 🌐 **[Setup Claude Code UI](CLAUDE_CODE_UI_SETUP.md)** - Interface web
 
 ## 📞 Support
 

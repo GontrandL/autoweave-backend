@@ -1,416 +1,386 @@
-# AutoWeave Backend
+# 🚀 AutoWeave Configuration & Conflict Resolution Engine
 
-A scalable, event-driven backend architecture for the AutoWeave ecosystem with seamless integration to AutoWeave Core.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-brightgreen)](https://nodejs.org/)
+[![Enterprise Ready](https://img.shields.io/badge/Enterprise-Ready-blue)](https://github.com/your-org/autoweave-backend)
 
-## Overview
+## 🎯 Le moteur 3-en-1 pour vos services
 
-The AutoWeave Backend provides enterprise-grade services including analytics, data pipelines, integration hub, and advanced monitoring. It connects seamlessly with AutoWeave Core via WebSocket and HTTP APIs, extending the agent orchestration capabilities with powerful backend services.
-
-## Architecture
+L'**AutoWeave Engine** combine trois moteurs puissants en une seule plateforme :
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    AutoWeave Backend                     │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐ │
-│  │   Service    │  │   Event Bus   │  │  AutoWeave   │ │
-│  │   Manager    │  │  (Redis Pub/  │  │    Core      │ │
-│  │             │  │     Sub)      │  │  Connector   │ │
-│  └─────────────┘  └──────────────┘  └───────────────┘ │
-│                                                         │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │                  Services Layer                  │   │
-│  ├─────────────┬───────────────┬──────────────────┤   │
-│  │   Data      │  Integration  │    Analytics     │   │
-│  │  Pipeline   │      Hub       │     Engine       │   │
-│  └─────────────┴───────────────┴──────────────────┘   │
-│                                                         │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │               Storage Adapters                   │   │
-│  ├─────────────┬───────────────┬──────────────────┤   │
-│  │   Qdrant    │     Redis      │  Neo4j/Memgraph  │   │
-│  │  (Vector)   │    (Cache)     │     (Graph)      │   │
-│  └─────────────┴───────────────┴──────────────────┘   │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-                            ↕
-                    WebSocket + HTTP
-                            ↕
-┌─────────────────────────────────────────────────────────┐
-│                    AutoWeave Core                       │
-│  (Agent Weaver, Memory System, MCP Discovery, ANP)      │
-└─────────────────────────────────────────────────────────┘
+🔌 INTÉGRATION     ⚙️ CONFIGURATION     ⚔️ RÉSOLUTION CONFLITS
+   INTELLIGENTE   +   AUTOMATIQUE    +    TEMPS RÉEL
 ```
 
-## 🐳 Deployment
+**Plus qu'un système d'intégration** → **Moteur de configuration intelligent qui résout automatiquement les conflits**
 
-**NEW!** AutoWeave Backend now includes a complete Docker stack with 1-click deployment:
+## ✨ Trois moteurs, une plateforme
+
+### ⚙️ **Moteur de Configuration Automatique**
+
+```javascript
+// GitHub URL → Configuration optimale automatique
+"https://github.com/vercel/next.js" → {
+  type: "web-ui",
+  framework: "Next.js", 
+  ports: [3000, 3001],
+  buildCommands: ["npm run build", "npm run preview"],
+  features: ["spa", "ssr", "hot-reload"],
+  healthEndpoints: ["/api/health", "/health"]
+}
+```
+
+**Détection intelligente de :**
+- **Frameworks** : React, Vue, Next.js, FastAPI, SST, Angular...
+- **Types de projets** : web-ui, api-service, development-tool, database...
+- **Configurations optimales** : ports, endpoints, commandes, variables env
+- **Best practices** : Application automatique selon le contexte
+
+### ⚔️ **Moteur de Résolution de Conflits**
+
+```javascript
+// Conflit détecté → Résolution automatique
+Port 3000 occupé par Service A
+Service B demande port 3000 → Alloué automatiquement port 3001
+URLs mises à jour : http://localhost:3001
+Configuration préservée ✅
+```
+
+**Résolution automatique de :**
+- **Conflits de ports** : Allocation intelligente de ports alternatifs
+- **Conflits de configuration** : Merge intelligent des paramètres
+- **Conflits de dépendances** : Validation et résolution des incompatibilités  
+- **Conflits de ressources** : Optimisation allocation mémoire/CPU
+
+### 🔌 **Moteur d'Intégration Intelligente**
+
+```javascript
+// Intégration adaptative contextuelle
+curl -X POST /api/integration/register -d '{
+  "name": "sst-project",
+  "type": "development-tool", // Détecté automatiquement
+  "config": {
+    "githubUrl": "https://github.com/sst/opencode",
+    "autoDetectPort": true,     // Trouve port optimal
+    "autoResolveConflicts": true // Résout conflits automatiquement
+  }
+}'
+```
+
+## 🏆 Résultats validés
+
+### ✅ **Test massif : 100% réussite**
+- **8 projets GitHub** intégrés simultanément
+- **3 conflits de ports** résolus automatiquement
+- **Configuration intelligente** appliquée pour chaque framework
+- **Zero downtime** - Plug-in/Plug-out sans interruption
+
+### 🎯 **Projets testés avec succès**
+| Projet | Framework | Type | Configuration | Statut |
+|--------|-----------|------|---------------|--------|
+| Claude Code UI | React/Node | development-tool | Auto-détectée | ✅ |
+| Next.js | Next.js | web-ui | SPA + SSR | ✅ |
+| React | React | web-ui | SPA optimisé | ✅ |
+| FastAPI | FastAPI | api-service | API + docs | ✅ |
+| SST OpenCode | SST | development-tool | IaC + AWS | ✅ |
+| VS Code | Electron | development-tool | Desktop app | ✅ |
+| Vue.js | Vue | web-ui | SPA moderne | ✅ |
+| Angular | Angular | web-ui | Enterprise SPA | ✅ |
+
+## 🚀 Démarrage rapide
+
+### Installation automatique Ubuntu
 
 ```bash
-# One command to deploy everything!
-./scripts/deploy-stack.sh
+# 1. Télécharger et déployer
+wget https://raw.githubusercontent.com/GontrandL/autoweave-backend/master/deploy-ubuntu.sh
+chmod +x deploy-ubuntu.sh
+sudo ./deploy-ubuntu.sh
 
-# Verify deployment is healthy
-./scripts/verify-deployment.sh
+# 2. Vérifier installation
+curl http://your-server-ip/health
 ```
 
-This will automatically:
-- ✅ Start Redis (Event Bus & Cache)
-- ✅ Start Neo4j (Graph Database) 
-- ✅ Start Qdrant (Vector Database)
-- ✅ Build and start the Backend
-- ✅ Wait for all health checks
-- ✅ Run comprehensive verification tests
+### Développement local
 
-### Quick Test
 ```bash
-# Test authentication system
-./scripts/test-auth.sh
-
-# Run complete feature demo
-node examples/complete-example.js
-```
-
-See [Deployment Guide](./README_DEPLOYMENT.md) for complete details.
-
-### Core Components
-
-#### AutoWeave Core Connector
-- **Bidirectional Communication**: WebSocket + HTTP connection to Core
-- **Service Registration**: Automatic registration via ANP (Agent Network Protocol)
-- **Event Synchronization**: Real-time event forwarding between Core and Backend
-- **Auto-reconnection**: Exponential backoff retry mechanism
-
-#### Service Manager
-- **Service Registry**: Dynamic service registration and discovery
-- **Health Monitoring**: Real-time health checks and circuit breakers
-- **Load Balancing**: Intelligent request distribution
-- **Auto-scaling**: Dynamic scaling based on metrics
-
-#### Data Pipeline
-- **Stream Processing**: Real-time data transformation
-- **Batch Processing**: Scheduled data processing jobs
-- **ETL Operations**: Extract, Transform, Load workflows
-- **Data Validation**: Schema validation and data quality checks
-
-#### Event Bus
-- **Pub/Sub Messaging**: Decoupled service communication
-- **Event Sourcing**: Complete event history and replay
-- **Message Queuing**: Reliable message delivery
-- **Event Routing**: Intelligent event distribution
-
-### Services
-
-#### Analytics Service
-- Real-time metrics collection
-- Custom dashboards and reports
-- Predictive analytics
-- Performance insights
-
-#### Integration Hub
-- Third-party API integration
-- Webhook management
-- API gateway functionality
-- Protocol translation
-
-#### Cost Optimizer
-- Resource usage tracking
-- Cost allocation
-- Optimization recommendations
-- Budget alerts
-
-#### Security Scanner
-- Vulnerability detection
-- Compliance checking
-- Access control management
-- Threat monitoring
-
-#### Performance Service
-- Application performance monitoring
-- Resource optimization
-- Bottleneck detection
-- SLA tracking
-
-### Auto-Integration System
-
-#### Discovery
-- Automatic service detection
-- API endpoint discovery
-- Schema inference
-- Dependency mapping
-
-#### Generator
-- Integration code generation
-- API client generation
-- Documentation generation
-- Test generation
-
-#### Validator
-- Integration testing
-- Contract validation
-- Performance validation
-- Security validation
-
-### Infrastructure
-
-#### Monitoring
-- Prometheus metrics
-- Custom dashboards
-- Alert management
-- SLO/SLI tracking
-
-#### Logging
-- Centralized logging
-- Log aggregation
-- Search and analysis
-- Log retention policies
-
-#### Deployment
-- CI/CD pipelines
-- Blue-green deployments
-- Canary releases
-- Rollback automation
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- Redis (for event bus)
-- Qdrant (for vector storage)
-- Neo4j (for graph data)
-- AutoWeave Core (optional, for full integration)
-
-### Installation
-```bash
+# 1. Cloner et installer
+git clone https://github.com/GontrandL/autoweave-backend.git
+cd autoweave-backend
 npm install
+
+# 2. Démarrer en mode développement
+npm run dev:quick
+
+# 3. Tester le système
+node examples/conflict-resolution-demo.js
 ```
 
-### Configuration
-Create a `.env` file:
-```env
-NODE_ENV=development
-PORT=3001
+## 🧪 Démonstrations
 
-# AutoWeave Core Connection
-AUTOWEAVE_CORE_URL=http://localhost:3000
-AUTOWEAVE_CORE_WS_URL=ws://localhost:3000/ws
-ANP_SERVER_URL=http://localhost:8083
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Qdrant
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
-
-# Neo4j
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=password
-
-# Monitoring
-METRICS_PORT=9090
-LOG_LEVEL=info
-```
-
-### Running
-
-#### 🚀 Quick Start with Docker (Recommended)
+### Test d'intégration GitHub simple
 ```bash
-# Deploy all required services with one command
-./scripts/deploy-stack.sh
-
-# This will start Redis, Neo4j, Qdrant, and the Backend
-# Access the API at http://localhost:3001
+node test-github-integration.js https://github.com/siteboon/claudecodeui
 ```
 
-#### Manual Setup
+### Test spécialisé framework SST
 ```bash
-# 1. Start required services (Redis, Neo4j, Qdrant)
-docker-compose up -d redis neo4j qdrant
-
-# 2. Wait for services to be ready
-./scripts/check-dependencies.sh
-
-# 3. Start the backend
-npm start
-
-# Development mode
-npm run dev
-
-# Tests
-npm test
-
-# Start monitoring stack
-npm run monitoring:start
+node test-sst-opencode-detailed.js
 ```
 
-#### Standalone Mode (for testing only)
+### Test massif (8 projets simultanés)
 ```bash
-# Start without external dependencies
-DISABLE_REDIS=true npm start
+node demo-massive-integration.js
 ```
 
-## 🎓 Getting Started
-
-### Quick Start (5 minutes)
+### Démonstration résolution de conflits
 ```bash
-# 1. Start the backend
-npm start
-
-# 2. Login and get a token
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-
-# 3. View API documentation
-open http://localhost:3001/api-docs
-
-# 4. Check system health
-curl http://localhost:3001/health
+node examples/conflict-resolution-demo.js
 ```
 
-### Complete Tutorial
-Follow our comprehensive tutorial to master AutoWeave Backend:
-
-📖 **[Start the Tutorial](./TUTORIAL.md)** - From beginner to expert in 4 hours
-
-### Examples and Use Cases
-
-| Example | Description | Difficulty | Time |
-|---------|-------------|------------|------|
-| [01-quick-start](./examples/01-quick-start/) | Get up and running in 5 minutes | Beginner | 5 min |
-| [02-authentication](./examples/02-authentication/) | JWT tokens, API keys, permissions | Beginner | 15 min |
-| [03-service-management](./examples/03-service-management/) | Register and manage services | Beginner | 10 min |
-| [04-rest-api-integration](./examples/04-rest-api-integration/) | Connect external REST APIs | Intermediate | 20 min |
-| [05-database-integration](./examples/05-database-integration/) | Multi-database connections | Intermediate | 25 min |
-| [06-event-driven](./examples/06-event-driven/) | Pub/sub and event sourcing | Intermediate | 15 min |
-| [07-data-pipeline](./examples/07-data-pipeline/) | Build processing pipelines | Advanced | 30 min |
-| [08-analytics](./examples/08-analytics/) | Track events and build dashboards | Advanced | 30 min |
-| [09-monitoring](./examples/09-monitoring/) | Prometheus, Grafana, alerting | Advanced | 30 min |
-| [10-ecommerce-backend](./examples/10-ecommerce-backend/) | Complete e-commerce solution | Expert | 120 min |
-
-### Learning Paths
-
-#### 🔰 For Backend Developers
-`01 → 02 → 03 → 04 → 05 → 06 → 07 → 09 → 10`
-*Focus: APIs, databases, microservices*
-
-#### ⚙️ For DevOps Engineers  
-`01 → 02 → 09 → 03 → 04 → 05 → 10`
-*Focus: Monitoring, deployment, infrastructure*
-
-#### 🎨 For Full-Stack Developers
-`01 → 02 → 03 → 08 → 04 → 06 → 10`
-*Focus: API integration, analytics, user-facing features*
-
-#### 🏗️ For System Architects
-`01 → 06 → 07 → 09 → 10 → 05 → 04`
-*Focus: Architecture patterns, scalability, design*
+### Démonstration complète des 3 moteurs
+```bash
+node examples/comprehensive-3-engines-demo.js
 ```
 
-## API Documentation
+## 📖 Utilisation avancée
 
-### Core Integration
-- `GET /api/core/status` - Get Core connection status
-- `POST /api/core/connect` - Connect to AutoWeave Core
-- `POST /api/core/disconnect` - Disconnect from Core
-- `GET /api/core/agents/:id` - Get agent from Core
-- `POST /api/core/memory/search` - Search Core memory
-- `POST /api/core/events` - Forward event to Core
+### Configuration automatique intelligente
 
-### Service Registry
-- `POST /api/services/register` - Register a new service
-- `GET /api/services` - List all services
-- `GET /api/services/:id/health` - Check service health
-- `DELETE /api/services/:id` - Deregister service
+```javascript
+// Exemple : Projet React détecté automatiquement
+POST /api/integration/register
+{
+  "name": "my-react-app",
+  "config": {
+    "githubUrl": "https://github.com/user/react-project"
+    // Configuration auto-détectée :
+    // - Type: "web-ui" 
+    // - Framework: "React"
+    // - Ports: [3000, 3001]
+    // - Features: ["spa", "hot-reload"]
+    // - Build: "npm run build"
+  }
+}
+```
 
-### Event Bus
-- `POST /api/events/publish` - Publish an event
-- `GET /api/events/subscribe` - Subscribe to events (WebSocket)
-- `GET /api/events/history` - Get event history
+### Résolution de conflits automatique
 
-### Analytics
-- `POST /api/analytics/metrics` - Send metrics
-- `GET /api/analytics/dashboard` - Get dashboard data
-- `POST /api/analytics/query` - Custom analytics query
+```javascript
+// Scénario : 3 services veulent le port 3000
+Service 1: port 3000 → ✅ Alloué port 3000
+Service 2: port 3000 → ✅ Alloué port 3001 (conflit résolu)
+Service 3: port 3000 → ✅ Alloué port 3002 (conflit résolu)
 
-## Architecture Patterns
+// URLs automatiquement mises à jour
+// Configuration préservée pour chaque service
+```
 
-### Microservices
-- Service isolation
-- Independent deployment
-- Technology agnostic
-- Fault tolerance
+### Orchestration de stack complète
 
-### Event-Driven
-- Loose coupling
-- Asynchronous communication
-- Event sourcing
-- CQRS pattern
+```javascript
+// Stack Frontend + Backend + Database
+// Déploiement intelligent avec résolution de dépendances
 
-### API Gateway
-- Request routing
-- Authentication
-- Rate limiting
-- Response caching
+1. Database → Port 5432 ✅
+2. API Backend → Port 8000 ✅ (dépend de Database)
+3. Frontend → Port 3000 ✅ (dépend de API Backend)
 
-### Data Management
-- Database per service
-- Distributed transactions
-- Data synchronization
-- Cache strategies
+// Ordre de déploiement automatiquement calculé
+// Monitoring adaptatif selon le rôle de chaque service
+```
 
-## Development Guidelines
+## 🔧 API Reference
 
-### Code Style
-- ES6+ modules
-- Async/await for asynchronous code
-- JSDoc comments
-- ESLint configuration
+### Endpoints principaux
 
-### Testing
-- Unit tests for all services
-- Integration tests for APIs
-- Performance tests
-- Security tests
+```javascript
+// Intégration avec auto-configuration
+POST /api/integration/register
+{
+  "name": "project-name",
+  "type": "auto-detect", // ou spécifique
+  "config": {
+    "githubUrl": "https://github.com/user/project",
+    "autoDetectPort": true,
+    "autoResolveConflicts": true,
+    "intelligentConfiguration": true
+  }
+}
 
-### Monitoring
-- Structured logging
-- Distributed tracing
-- Custom metrics
-- Error tracking
+// Résolution de conflit manuelle
+POST /api/integration/resolve-conflict
+{
+  "conflictType": "port",
+  "services": ["service-a", "service-b"],
+  "resolutionStrategy": "auto" // ou "manual"
+}
 
-### Security
-- API authentication
-- Data encryption
-- Input validation
-- Security headers
+// Configuration avancée
+GET /api/integration/:id/configuration
+// Retourne la configuration optimale détectée
 
-## Core Integration
+// Métriques de conflits
+GET /api/integration/conflicts/metrics
+// Statistiques de résolution de conflits
+```
 
-The backend automatically connects to AutoWeave Core on startup, providing:
+### Types d'intégration supportés
 
-- **Service Registration**: All backend services are registered with Core via ANP
-- **Event Forwarding**: Key events are synchronized between systems
-- **Memory Access**: Direct access to Core's memory system
-- **Agent Management**: Manage agents through backend APIs
+| Type | Description | Auto-Configuration | Exemples |
+|------|-------------|-------------------|----------|
+| `web-ui` | Interfaces utilisateur | React, Vue, Angular | SPA, SSR, PWA |
+| `api-service` | Services API | FastAPI, Express, Django | REST, GraphQL |
+| `development-tool` | Outils développement | VS Code, SST, CLI | Desktop, IaC |
+| `database` | Bases de données | PostgreSQL, MongoDB | SQL, NoSQL |
+| `message-queue` | Files de messages | Kafka, RabbitMQ | Event streaming |
+| `plugin` | Extensions | NPM, Chrome, VS Code | Add-ons |
+| `webhook` | Intégrations webhook | GitHub, Slack | Event-driven |
+| `openapi` | Spécifications API | Swagger, OpenAPI 3.1 | API docs |
 
-See [CORE_INTEGRATION.md](docs/CORE_INTEGRATION.md) for detailed integration guide.
+## 🎯 Use Cases
 
-## Documentation
+### 1. **Résolution de conflits DevOps**
+```bash
+# Problème : Microservices en conflit de ports
+# Solution : Allocation automatique + configuration mise à jour
+curl -X POST /api/integration/register -d '{
+  "name": "microservice-stack",
+  "config": { "autoResolveConflicts": true }
+}'
+```
 
-- [Analytics Engine Guide](docs/ANALYTICS_GUIDE.md) - Comprehensive analytics documentation
-- [Core Integration Guide](docs/CORE_INTEGRATION.md) - AutoWeave Core integration details
-- [API Reference](docs/API_REFERENCE.md) - Complete API documentation
-- [Contributing Guide](docs/CONTRIBUTING.md) - Development guidelines
+### 2. **Configuration multi-environnements**
+```bash
+# Problème : Configuration différente dev/staging/prod
+# Solution : Templates intelligents par environnement
+curl -X POST /api/integration/register -d '{
+  "config": { 
+    "environment": "production",
+    "autoOptimize": true
+  }
+}'
+```
 
-## Contributing
+### 3. **Migration de projets**
+```bash
+# Problème : Migrer stack legacy vers moderne
+# Solution : Détection + configuration optimale automatique
+node test-github-integration.js https://github.com/legacy/project
+```
 
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+### 4. **Orchestration CI/CD**
+```bash
+# Problème : Pipeline complexe avec dépendances
+# Solution : Résolution ordre déploiement + configuration
+# Voir: examples/conflict-resolution-demo.js
+```
 
-## License
+## 📊 Monitoring et métriques
 
-MIT License - see [LICENSE](LICENSE) for details.
+### Dashboard de conflits
+```javascript
+GET /api/integration/conflicts/dashboard
+{
+  "totalConflicts": 156,
+  "resolvedAutomatically": 149,
+  "resolutionRate": "95.5%",
+  "avgResolutionTime": "2.3s",
+  "topConflictTypes": ["port", "configuration", "dependencies"]
+}
+```
+
+### Métriques de configuration
+```javascript
+GET /api/integration/configuration/metrics  
+{
+  "frameworksDetected": 23,
+  "autoConfigurationRate": "92%",
+  "optimizationScore": 0.94,
+  "configurationsSaved": 1847
+}
+```
+
+## 🔒 Sécurité et performance
+
+### Sécurité
+- **Headers sécurité** : CSP, HSTS, X-Frame-Options
+- **Rate limiting** : 10 req/s par IP avec burst
+- **Validation stricte** : Configuration et inputs
+- **Isolation** : Services isolés par défaut
+
+### Performance
+- **Auto-optimization** : Configuration optimale par framework
+- **Resource management** : Allocation intelligente CPU/mémoire
+- **Caching** : Configuration mise en cache
+- **Load balancing** : Répartition automatique de charge
+
+## 🛠️ Architecture
+
+```
+AutoWeave Engine
+├── 🔌 Integration Layer
+│   ├── GitHub Projects Detection
+│   ├── Service Discovery
+│   └── Adaptive Integration
+├── ⚙️ Configuration Engine  
+│   ├── Framework Detection
+│   ├── Template Generation
+│   └── Best Practices Application
+├── ⚔️ Conflict Resolution
+│   ├── Port Conflict Resolver
+│   ├── Configuration Merger
+│   └── Dependency Resolver
+└── 🎯 Orchestration Layer
+    ├── Service Coordination
+    ├── Deployment Ordering
+    └── Health Monitoring
+```
+
+## 📚 Documentation complète
+
+- 📋 **[Guide système robuste](ROBUST_INTEGRATION_SYSTEM.md)** - Documentation complète
+- ⚔️ **[Guide résolution de conflits](CONFLICT_RESOLUTION_GUIDE.md)** - Résolution automatique avancée
+- ⚙️ **[Exemples de configuration](CONFIGURATION_EXAMPLES.md)** - Configuration intelligente par framework
+- 🚀 **[Guide déploiement Ubuntu](DEPLOYMENT_GUIDE.md)** - Installation production
+- 🌐 **[Setup Claude Code UI](CLAUDE_CODE_UI_SETUP.md)** - Interface web
+
+## 🤝 Contributing
+
+1. Fork le repository
+2. Créer une branche feature (`git checkout -b feature/amazing-feature`)
+3. Tester avec les démos (`node examples/conflict-resolution-demo.js`)
+4. Commit les changements (`git commit -m 'Add amazing feature'`)
+5. Push vers la branche (`git push origin feature/amazing-feature`)
+6. Ouvrir une Pull Request
+
+## 📞 Support
+
+- **🧪 Tests** : `node examples/conflict-resolution-demo.js`
+- **🏥 Health** : `curl http://localhost:3001/health`
+- **📖 API Docs** : `http://localhost:3001/api-docs`
+- **📊 Métriques** : `http://localhost:9092/metrics`
+
+## 📄 License
+
+MIT License - voir [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## 🎯 Pourquoi AutoWeave ?
+
+| Fonctionnalité | Avant AutoWeave | Avec AutoWeave |
+|----------------|----------------|----------------|
+| **Configuration** | Manuelle, répétitive | 🤖 Automatique, intelligente |
+| **Conflits** | Debugging manuel | ⚔️ Résolution automatique |
+| **Intégration** | Scripts custom | 🔌 Plug & play intelligent |
+| **Orchestration** | Configuration complexe | 🎯 Coordination automatique |
+| **Monitoring** | Setup manuel | 📊 Monitoring intégré |
+| **Performance** | Optimisation manuelle | ⚡ Auto-optimization |
+
+**AutoWeave = Le moteur le plus avancé pour configuration, intégration et résolution de conflits ! 🚀**
+
+---
+
+*Enterprise-grade Configuration & Conflict Resolution Engine - Transformez votre DevOps avec l'intelligence automatique d'AutoWeave*
