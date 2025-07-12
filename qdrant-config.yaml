@@ -1,0 +1,33 @@
+# Qdrant configuration for AutoWeave Backend
+service:
+  host: 0.0.0.0
+  http_port: 6333
+  grpc_port: 6334
+
+storage:
+  # Storage path inside the container
+  storage_path: /qdrant/storage
+  # Snapshots configuration
+  snapshots_path: /qdrant/snapshots
+  # Maximum number of concurrent updates
+  max_optimization_threads: 2
+
+# Collection defaults
+collections:
+  # Default collection parameters
+  default_segment_number: 2
+  # Default replication factor
+  replication_factor: 1
+
+# Performance settings
+performance:
+  # Maximum number of search requests
+  max_search_threads: 0  # 0 = auto
+  # Optimizer settings
+  optimizer_cycles_per_tick: 100
+
+# Security (optional)
+# api_key: your-api-key-here
+
+# Logging
+log_level: INFO

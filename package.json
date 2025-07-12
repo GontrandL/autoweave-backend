@@ -18,7 +18,13 @@
     "monitoring:logs": "docker-compose -f docker-compose.monitoring.yml logs -f",
     "postman:generate": "node scripts/generate-postman-collection.js",
     "test:deployment": "./scripts/test-deployment.sh",
-    "test:deployment:quick": "./scripts/test-deployment.sh --quick"
+    "test:deployment:quick": "./scripts/test-deployment.sh --quick",
+    "deploy": "./scripts/deploy-stack.sh",
+    "deploy:full": "./scripts/deploy-stack.sh --full",
+    "check:deps": "./scripts/check-dependencies.sh",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "keywords": [
     "autoweave",

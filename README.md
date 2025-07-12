@@ -43,6 +43,25 @@ The AutoWeave Backend provides enterprise-grade services including analytics, da
 └─────────────────────────────────────────────────────────┘
 ```
 
+## 🐳 Deployment
+
+**NEW!** AutoWeave Backend now includes a complete Docker stack:
+
+```bash
+# One command to deploy everything!
+./scripts/deploy-stack.sh
+```
+
+This will automatically:
+- ✅ Start Redis (Event Bus)
+- ✅ Start Neo4j (Graph Database) 
+- ✅ Start Qdrant (Vector Database)
+- ✅ Build and start the Backend
+- ✅ Wait for all health checks
+- ✅ Verify the deployment
+
+See [Deployment Guide](./README_DEPLOYMENT.md) for complete details.
+
 ### Core Components
 
 #### AutoWeave Core Connector
@@ -185,21 +204,41 @@ LOG_LEVEL=info
 ```
 
 ### Running
-```bash
-# Development (auto-connects to Core if available)
-npm run dev
 
-# Production
+#### 🚀 Quick Start with Docker (Recommended)
+```bash
+# Deploy all required services with one command
+./scripts/deploy-stack.sh
+
+# This will start Redis, Neo4j, Qdrant, and the Backend
+# Access the API at http://localhost:3001
+```
+
+#### Manual Setup
+```bash
+# 1. Start required services (Redis, Neo4j, Qdrant)
+docker-compose up -d redis neo4j qdrant
+
+# 2. Wait for services to be ready
+./scripts/check-dependencies.sh
+
+# 3. Start the backend
 npm start
 
-# Run with Core integration test
-npm run test:integration
+# Development mode
+npm run dev
 
 # Tests
 npm test
 
 # Start monitoring stack
 npm run monitoring:start
+```
+
+#### Standalone Mode (for testing only)
+```bash
+# Start without external dependencies
+DISABLE_REDIS=true npm start
 ```
 
 ## 🎓 Getting Started
