@@ -45,20 +45,32 @@ The AutoWeave Backend provides enterprise-grade services including analytics, da
 
 ## 🐳 Deployment
 
-**NEW!** AutoWeave Backend now includes a complete Docker stack:
+**NEW!** AutoWeave Backend now includes a complete Docker stack with 1-click deployment:
 
 ```bash
 # One command to deploy everything!
 ./scripts/deploy-stack.sh
+
+# Verify deployment is healthy
+./scripts/verify-deployment.sh
 ```
 
 This will automatically:
-- ✅ Start Redis (Event Bus)
+- ✅ Start Redis (Event Bus & Cache)
 - ✅ Start Neo4j (Graph Database) 
 - ✅ Start Qdrant (Vector Database)
 - ✅ Build and start the Backend
 - ✅ Wait for all health checks
-- ✅ Verify the deployment
+- ✅ Run comprehensive verification tests
+
+### Quick Test
+```bash
+# Test authentication system
+./scripts/test-auth.sh
+
+# Run complete feature demo
+node examples/complete-example.js
+```
 
 See [Deployment Guide](./README_DEPLOYMENT.md) for complete details.
 
