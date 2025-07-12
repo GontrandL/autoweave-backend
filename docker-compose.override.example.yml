@@ -1,0 +1,173 @@
+# Docker Compose Override Example
+# Copy this file to docker-compose.override.yml and customize for your local environment
+# 
+# This file allows you to override settings without modifying the main docker-compose.yml
+# Docker Compose automatically reads both files when you run docker-compose commands
+
+version: '3.8'
+
+services:
+  # Override Redis configuration
+  redis:
+    # Example: Use a different Redis image
+    # image: redis:7.2-alpine
+    
+    # Example: Add custom Redis configuration
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    
+    # Example: Change resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    # Example: Add custom environment variables
+    environment:
+      - REDIS_EXTRA_FLAGS=--loglevel debug
+
+  # Override Neo4j configuration
+  neo4j:
+    # Example: Use enterprise edition (requires license)
+    # image: neo4j:5-enterprise
+    
+    # Example: Increase memory allocation
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_dbms_memory_pagecache_size=2G
+      - NEO4J_dbms_memory_heap_max__size=2G
+      - NEO4J_dbms_memory_heap_initial__size=1G
+      # Enable query logging
+      - NEO4J_dbms_logs_query_enabled=true
+      - NEO4J_dbms_logs_query_threshold=100ms
+    
+    # Example: Mount additional plugins
+    volumes:
+      - ./neo4j-plugins:/plugins
+      - ./neo4j-conf:/conf
+      
+    # Example: Expose additional ports for clustering
+    # ports:
+    #   - "5000:5000"  # Discovery
+    #   - "6000:6000"  # Transaction
+    #   - "7000:7000"  # Raft
+
+  # Override Qdrant configuration
+  qdrant:
+    # Example: Enable authentication
+    environment:
+      - QDRANT__SERVICE__API_KEY=your-secret-api-key
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__LOG_LEVEL=DEBUG
+    
+    # Example: Persist additional data
+    volumes:
+      - qdrant-snapshots:/qdrant/snapshots
+      - ./qdrant-config.yaml:/qdrant/config/production.yaml
+    
+    # Example: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+
+  # Override Backend configuration
+  autoweave-backend:
+    # Example: Development mode with hot reload
+    # command: npm run dev
+    
+    # Example: Enable debug logging
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - DEBUG=autoweave:*
+      # Disable Redis for local development
+      # - DISABLE_REDIS=true
+      # Use mock adapters
+      # - USE_MOCK_ADAPTERS=true
+      # Enable detailed error messages
+      - SHOW_STACK_TRACES=true
+      # Increase API rate limits for development
+      - RATE_LIMIT_WINDOW=60000
+      - RATE_LIMIT_MAX=1000
+    
+    # Example: Mount source code for development
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./node_modules:/app/node_modules
+      - ./.env:/app/.env
+    
+    # Example: Expose additional ports
+    ports:
+      - "9229:9229"  # Node.js debugger
+    
+    # Example: Disable health check during development
+    # healthcheck:
+    #   disable: true
+
+# Additional services for development
+  # Example: Add a database GUI
+  # adminer:
+  #   image: adminer
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - autoweave-network
+  #   environment:
+  #     - ADMINER_DEFAULT_SERVER=neo4j
+
+  # Example: Add Redis Commander
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   ports:
+  #     - "8081:8081"
+  #   networks:
+  #     - autoweave-network
+  #   environment:
+  #     - REDIS_HOSTS=local:redis:6379
+
+  # Example: Add Grafana for monitoring
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - "3003:3000"
+  #   networks:
+  #     - autoweave-network
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #     - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+  #     - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin123
+  #     - GF_USERS_ALLOW_SIGN_UP=false
+
+# Additional volumes
+volumes:
+  qdrant-snapshots:
+    driver: local
+  grafana-data:
+    driver: local
+
+# Network configuration overrides
+networks:
+  autoweave-network:
+    # Example: Use a different subnet
+    # ipam:
+    #   config:
+    #     - subnet: 172.21.0.0/16
+    
+    # Example: Enable IPv6
+    # enable_ipv6: true
+    # ipam:
+    #   config:
+    #     - subnet: 2001:db8::/64

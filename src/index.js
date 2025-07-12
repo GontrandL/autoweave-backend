@@ -55,9 +55,32 @@ const wss = new WebSocketServer({ server });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize Redis for auth
+// Initialize Redis for auth with graceful degradation
 import Redis from 'ioredis';
-const redis = new Redis(config.redis);
+let redis = null;
+let redisHealthy = false;
+
+try {
+  redis = new Redis({
+    ...config.redis,
+    retryStrategy: (times) => {
+      const delay = Math.min(times * 50, 2000);
+      logger.warn(`Redis connection attempt ${times}, retrying in ${delay}ms`);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: false,
+    lazyConnect: true
+  });
+  
+  // Test connection
+  await redis.ping();
+  redisHealthy = true;
+  logger.info('Redis connected successfully');
+} catch (error) {
+  logger.warn('Redis connection failed, running in degraded mode:', error.message);
+  redis = null;
+}
 
 // Apply monitoring middleware
 app.use(createMonitoringMiddleware());
@@ -66,13 +89,29 @@ app.use(createMonitoringMiddleware());
 const serviceManager = monitorService(new ServiceManager({ logger, config }));
 const eventBus = monitorEventBus(new EventBus({ logger, config }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Health check endpoint with detailed service status
+app.get('/health', async (req, res) => {
+  const services = {
+    redis: redisHealthy ? 'healthy' : 'degraded',
+    neo4j: storageAdapters.neo4j ? 'healthy' : 'unavailable',
+    qdrant: storageAdapters.qdrant ? 'healthy' : 'unavailable',
+    core: coreConnector?.connected ? 'connected' : 'disconnected'
+  };
+  
+  // Determine overall status
+  const hasUnavailable = Object.values(services).includes('unavailable');
+  const hasDegraded = Object.values(services).includes('degraded');
+  const overallStatus = hasUnavailable ? 'degraded' : (hasDegraded ? 'warning' : 'healthy');
+  
   res.json({
-    status: 'healthy',
+    status: overallStatus,
     timestamp: new Date().toISOString(),
-    services: serviceManager.getHealthStatus(),
-    version: process.env.npm_package_version || '1.0.0'
+    services,
+    version: process.env.npm_package_version || '1.0.0',
+    mode: hasUnavailable || hasDegraded ? 'degraded' : 'full',
+    message: hasUnavailable || hasDegraded ? 
+      'Some services are unavailable, running with limited functionality' : 
+      'All services operational'
   });
 });
 
@@ -88,38 +127,75 @@ import StorageAdapterFactory from './services/data-pipeline/adapters/index.js';
 import IntegrationHub from './services/integration/integration-hub.js';
 import AnalyticsEngine from './services/analytics/analytics-engine.js';
 
-// Create storage adapters
+// Create storage adapters with graceful degradation
 const storageAdapterFactory = new StorageAdapterFactory({ config, logger });
-const storageAdapters = monitorDatabase({
-  qdrant: storageAdapterFactory.createAdapter('qdrant', config.qdrant),
-  redis: storageAdapterFactory.createAdapter('redis', config.redis),
-  neo4j: storageAdapterFactory.createAdapter('neo4j', config.neo4j)
-});
+const storageAdapters = {};
 
-// Initialize data pipeline
-const dataPipeline = monitorPipeline(new DataPipelineService({
-  logger,
-  config: config.dataPipeline,
-  eventBus,
-  storageAdapters
-}));
+// Try to create each adapter, but continue if they fail
+const adapterConfigs = [
+  { name: 'qdrant', config: config.qdrant },
+  { name: 'redis', config: config.redis },
+  { name: 'neo4j', config: config.neo4j }
+];
 
-// Initialize integration hub
-const integrationHub = monitorIntegrations(new IntegrationHub({
-  logger,
-  config: config,
-  eventBus,
-  dataPipeline,
-  serviceManager
-}));
+for (const { name, config: adapterConfig } of adapterConfigs) {
+  try {
+    storageAdapters[name] = storageAdapterFactory.createAdapter(name, adapterConfig);
+    logger.info(`${name} adapter created successfully`);
+  } catch (error) {
+    logger.warn(`Failed to create ${name} adapter, service will run without it:`, error.message);
+    storageAdapters[name] = null;
+  }
+}
 
-// Initialize analytics engine
-const analyticsEngine = monitorAnalytics(new AnalyticsEngine({
-  logger,
-  config: config,
-  eventBus,
-  storageAdapters
-}));
+const monitoredAdapters = monitorDatabase(storageAdapters);
+
+// Initialize data pipeline with available adapters
+let dataPipeline = null;
+try {
+  dataPipeline = monitorPipeline(new DataPipelineService({
+    logger,
+    config: config.dataPipeline,
+    eventBus,
+    storageAdapters: monitoredAdapters
+  }));
+  logger.info('Data pipeline initialized successfully');
+} catch (error) {
+  logger.warn('Data pipeline initialization failed, running without it:', error.message);
+}
+
+// Initialize integration hub if data pipeline is available
+let integrationHub = null;
+if (dataPipeline) {
+  try {
+    integrationHub = monitorIntegrations(new IntegrationHub({
+      logger,
+      config: config,
+      eventBus,
+      dataPipeline,
+      serviceManager
+    }));
+    logger.info('Integration hub initialized successfully');
+  } catch (error) {
+    logger.warn('Integration hub initialization failed:', error.message);
+  }
+} else {
+  logger.warn('Skipping integration hub initialization (no data pipeline)');
+}
+
+// Initialize analytics engine with available adapters
+let analyticsEngine = null;
+try {
+  analyticsEngine = monitorAnalytics(new AnalyticsEngine({
+    logger,
+    config: config,
+    eventBus,
+    storageAdapters: monitoredAdapters
+  }));
+  logger.info('Analytics engine initialized successfully');
+} catch (error) {
+  logger.warn('Analytics engine initialization failed:', error.message);
+}
 
 // Import AutoWeave Core Connector
 import AutoWeaveCoreConnector from './connectors/autoweave-core-connector.js';
@@ -136,9 +212,30 @@ const coreConnector = new AutoWeaveCoreConnector({
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createUserService } from './services/user-service.js';
 
-// Initialize authentication
-const userService = createUserService({ logger, redis, config });
-const authMiddleware = createAuthMiddleware({ config, logger, redis });
+// Initialize authentication with fallback
+let userService = null;
+let authMiddleware = null;
+
+if (redis) {
+  try {
+    userService = createUserService({ logger, redis, config });
+    authMiddleware = createAuthMiddleware({ config, logger, redis });
+    logger.info('Authentication services initialized');
+  } catch (error) {
+    logger.warn('Authentication initialization failed:', error.message);
+  }
+} else {
+  logger.warn('Authentication disabled (no Redis connection)');
+  // Create a dummy auth middleware that allows all requests
+  authMiddleware = {
+    cors: () => (req, res, next) => next(),
+    rateLimit: () => (req, res, next) => next(),
+    authenticate: () => (req, res, next) => {
+      logger.warn('Authentication bypassed in degraded mode');
+      next();
+    }
+  };
+}
 
 // Import route handlers
 import createServicesRouter from './routes/services.js';
@@ -159,12 +256,28 @@ const swaggerInfo = setupSwagger(app, '/api-docs');
 // Public routes
 app.use('/api/auth', createAuthRouter(authMiddleware, userService));
 
-// Protected API Routes
+// Protected API Routes - only mount if services are available
 app.use('/api/services', authMiddleware.authenticate(), createServicesRouter(serviceManager));
 app.use('/api/events', authMiddleware.authenticate(), createEventsRouter(eventBus));
-app.use('/api/analytics', authMiddleware.authenticate(), createAnalyticsRouter(analyticsEngine));
-app.use('/api/integration', authMiddleware.authenticate(), createIntegrationRouter(integrationHub));
-app.use('/api/pipeline', authMiddleware.authenticate(), (await import('./routes/pipeline.js')).default(dataPipeline));
+
+if (analyticsEngine) {
+  app.use('/api/analytics', authMiddleware.authenticate(), createAnalyticsRouter(analyticsEngine));
+} else {
+  app.use('/api/analytics', (req, res) => res.status(503).json({ error: 'Analytics service unavailable' }));
+}
+
+if (integrationHub) {
+  app.use('/api/integration', authMiddleware.authenticate(), createIntegrationRouter(integrationHub));
+} else {
+  app.use('/api/integration', (req, res) => res.status(503).json({ error: 'Integration service unavailable' }));
+}
+
+if (dataPipeline) {
+  app.use('/api/pipeline', authMiddleware.authenticate(), (await import('./routes/pipeline.js')).default(dataPipeline));
+} else {
+  app.use('/api/pipeline', (req, res) => res.status(503).json({ error: 'Pipeline service unavailable' }));
+}
+
 app.use('/api/core', authMiddleware.authenticate(), createCoreRouter(coreConnector));
 
 // WebSocket handling with monitoring
@@ -258,21 +371,39 @@ server.listen(PORT, async () => {
   logger.info(`WebSocket server ready on ws://localhost:${PORT}`);
   logger.info(`API Documentation available at http://localhost:${PORT}${swaggerInfo.ui}`);
   
-  // Initialize services
+  // Check operational mode
+  const degradedServices = [];
+  if (!redisHealthy) degradedServices.push('Redis');
+  if (!storageAdapters.neo4j) degradedServices.push('Neo4j');
+  if (!storageAdapters.qdrant) degradedServices.push('Qdrant');
+  if (!dataPipeline) degradedServices.push('Data Pipeline');
+  if (!analyticsEngine) degradedServices.push('Analytics');
+  if (!integrationHub) degradedServices.push('Integration Hub');
+  
+  if (degradedServices.length > 0) {
+    logger.warn('='.repeat(60));
+    logger.warn('RUNNING IN DEGRADED MODE');
+    logger.warn(`Unavailable services: ${degradedServices.join(', ')}`);
+    logger.warn('Some functionality may be limited');
+    logger.warn('='.repeat(60));
+  } else {
+    logger.info('All services operational - running in full mode');
+  }
+  
+  // Initialize services with graceful handling
   try {
     await serviceManager.startAll();
-    logger.info('All services started successfully');
-    
-    // Connect to AutoWeave Core
-    try {
-      await coreConnector.connect();
-      logger.info('Connected to AutoWeave Core');
-    } catch (error) {
-      logger.warn('Failed to connect to AutoWeave Core, will retry:', error.message);
-    }
+    logger.info('Service manager started successfully');
   } catch (error) {
-    logger.error('Failed to start services', error);
-    process.exit(1);
+    logger.warn('Some services failed to start:', error.message);
+    // Continue running in degraded mode
+  }
+  
+  // Connect to AutoWeave Core (non-blocking)
+  if (coreConnector) {
+    coreConnector.connect().catch(error => {
+      logger.warn('Failed to connect to AutoWeave Core:', error.message);
+    });
   }
 });
 
@@ -293,14 +424,32 @@ process.on('SIGTERM', async () => {
   // Disconnect from AutoWeave Core
   await coreConnector.disconnect();
   
-  // Stop analytics engine
-  await analyticsEngine.stop();
+  // Stop analytics engine if available
+  if (analyticsEngine) {
+    try {
+      await analyticsEngine.stop();
+    } catch (error) {
+      logger.error('Error stopping analytics engine:', error);
+    }
+  }
   
-  // Stop integration hub
-  await integrationHub.stop();
+  // Stop integration hub if available
+  if (integrationHub) {
+    try {
+      await integrationHub.stop();
+    } catch (error) {
+      logger.error('Error stopping integration hub:', error);
+    }
+  }
   
-  // Stop data pipeline
-  await dataPipeline.shutdown();
+  // Stop data pipeline if available
+  if (dataPipeline) {
+    try {
+      await dataPipeline.shutdown();
+    } catch (error) {
+      logger.error('Error stopping data pipeline:', error);
+    }
+  }
   
   // Stop services
   await serviceManager.stopAll();

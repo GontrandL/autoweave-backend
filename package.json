@@ -24,7 +24,13 @@
     "check:deps": "./scripts/check-dependencies.sh",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "dev:quick": "./scripts/dev-mode.sh quick",
+    "dev:mock": "./scripts/dev-mode.sh --mock",
+    "dev:redis": "./scripts/dev-mode.sh --redis",
+    "startup": "./scripts/startup-manager.sh",
+    "monitor": "./scripts/health-monitor.sh",
+    "monitor:auto": "./scripts/health-monitor.sh --auto-restart"
   },
   "keywords": [
     "autoweave",

@@ -11,10 +11,11 @@ services:
       - redis-data:/data
     command: redis-server --appendonly yes --appendfsync everysec
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
     networks:
       - autoweave-network
     restart: unless-stopped
@@ -38,11 +39,11 @@ services:
       - neo4j-import:/var/lib/neo4j/import
       - neo4j-plugins:/plugins
     healthcheck:
-      test: ["CMD", "wget", "-O", "-", "http://localhost:7474"]
+      test: ["CMD-SHELL", "wget -O - http://localhost:7474 2>/dev/null | grep -q 'neo4j' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
     networks:
       - autoweave-network
     restart: unless-stopped
@@ -60,10 +61,11 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6333/health"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:6333/health && wget -qO- http://localhost:6333/health | grep -q 'ok'"]
+      interval: 20s
       timeout: 10s
       retries: 5
+      start_period: 30s
     networks:
       - autoweave-network
     restart: unless-stopped
@@ -104,11 +106,11 @@ services:
       qdrant:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/health"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health | grep -qE '\"status\":\"(healthy|warning|degraded)\"' || exit 1"]
+      interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
     networks:
       - autoweave-network
     restart: unless-stopped
