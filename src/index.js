@@ -105,6 +105,7 @@ app.get('/metrics', async (req, res) => {
 // Initialize services
 import DataPipelineService from './services/data-pipeline/index.js';
 import StorageAdapterFactory from './services/data-pipeline/adapters/index.js';
+import IntegrationHub from './services/integration/integration-hub.js';
 
 // Create storage adapters
 const storageAdapterFactory = new StorageAdapterFactory({ config, logger });
@@ -122,6 +123,15 @@ const dataPipeline = new DataPipelineService({
   storageAdapters
 });
 
+// Initialize integration hub
+const integrationHub = new IntegrationHub({
+  logger,
+  config: config,
+  eventBus,
+  dataPipeline,
+  serviceManager
+});
+
 // Import route handlers
 import createServicesRouter from './routes/services.js';
 import createEventsRouter from './routes/events.js';
@@ -132,7 +142,7 @@ import createIntegrationRouter from './routes/integration.js';
 app.use('/api/services', createServicesRouter(serviceManager));
 app.use('/api/events', createEventsRouter(eventBus));
 app.use('/api/analytics', createAnalyticsRouter(null)); // Analytics engine to be implemented
-app.use('/api/integration', createIntegrationRouter(null)); // Integration hub to be implemented
+app.use('/api/integration', createIntegrationRouter(integrationHub));
 app.use('/api/pipeline', (await import('./routes/pipeline.js')).default(dataPipeline));
 
 // WebSocket handling
@@ -245,6 +255,12 @@ process.on('SIGTERM', async () => {
   wss.clients.forEach(ws => {
     ws.close();
   });
+  
+  // Stop integration hub
+  await integrationHub.stop();
+  
+  // Stop data pipeline
+  await dataPipeline.shutdown();
   
   // Stop services
   await serviceManager.stopAll();
